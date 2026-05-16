@@ -730,7 +730,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           });
                         }
                       },
-                child: Text(joining ? 'Joining...' : 'Join'),
+                child: Text(joining ? 'Sending Request...' : 'Request to Join'),
               ),
             ],
           );
