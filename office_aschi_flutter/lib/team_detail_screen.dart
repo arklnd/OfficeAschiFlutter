@@ -1362,7 +1362,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                       ),
                       title: Text(r.friendlyName),
                       trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
+                        icon: const Icon(Icons.person_remove),
                         onPressed: () => _removeReportee(r),
                         tooltip: 'Remove member',
                       ),
