@@ -1,11 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'team_search_screen.dart';
 import 'team_detail_screen.dart';
 import 'settings_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
-void main() {
+Future<void> setThemeMode(ThemeMode mode) async {
+  themeNotifier.value = mode;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('themeMode', mode.name);
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final saved = prefs.getString('themeMode');
+  if (saved != null) {
+    themeNotifier.value = ThemeMode.values.firstWhere(
+      (m) => m.name == saved,
+      orElse: () => ThemeMode.system,
+    );
+  }
   runApp(const MyApp());
 }
 
@@ -26,6 +42,7 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
             cardTheme: CardThemeData(
               elevation: 0,
+              clipBehavior: Clip.antiAlias,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -39,6 +56,7 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
             cardTheme: CardThemeData(
               elevation: 0,
+              clipBehavior: Clip.antiAlias,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

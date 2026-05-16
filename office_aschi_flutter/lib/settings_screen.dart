@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'main.dart' show themeNotifier;
+import 'main.dart' show themeNotifier, setThemeMode;
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -32,7 +32,7 @@ class SettingsScreen extends StatelessWidget {
                       title: 'System',
                       subtitle: 'Follow device theme',
                       selected: mode == ThemeMode.system,
-                      onTap: () => themeNotifier.value = ThemeMode.system,
+                      onTap: () => setThemeMode(ThemeMode.system),
                     ),
                     const Divider(height: 1, indent: 56),
                     _ThemeTile(
@@ -40,7 +40,7 @@ class SettingsScreen extends StatelessWidget {
                       title: 'Light',
                       subtitle: 'Always use light theme',
                       selected: mode == ThemeMode.light,
-                      onTap: () => themeNotifier.value = ThemeMode.light,
+                      onTap: () => setThemeMode(ThemeMode.light),
                     ),
                     const Divider(height: 1, indent: 56),
                     _ThemeTile(
@@ -48,7 +48,7 @@ class SettingsScreen extends StatelessWidget {
                       title: 'Dark',
                       subtitle: 'Always use dark theme',
                       selected: mode == ThemeMode.dark,
-                      onTap: () => themeNotifier.value = ThemeMode.dark,
+                      onTap: () => setThemeMode(ThemeMode.dark),
                     ),
                   ],
                 ),
