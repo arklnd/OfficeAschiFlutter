@@ -64,7 +64,6 @@ jobs:
     #       fi
 
       - name: Decode keystore & create key.properties
-        if: env.BUILD_TYPE == 'release'
         working-directory: office_aschi_flutter/android
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release-keystore.jks
