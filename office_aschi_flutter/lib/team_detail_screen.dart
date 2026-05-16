@@ -740,7 +740,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   }
 
   void _copyTeamUrl() {
-    Clipboard.setData(ClipboardData(text: 'team/${widget.teamId}'));
+    Clipboard.setData(
+      ClipboardData(
+        text: 'https://officeaschi.azurewebsites.net/team/${widget.teamId}',
+      ),
+    );
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Team link copied!')));
