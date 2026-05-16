@@ -1,0 +1,99 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_TYPE: ${{ inputs.build_type || 'debug' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get build metadata
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "build_number=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosiro/flutter-action@v2
+        with:
+          channel: beta
+
+      - name: Install dependencies
+        working-directory: office_aschi_flutter
+        run: flutter pub get
+
+      - name: Stamp app version
+        working-directory: office_aschi_flutter
+        run: |
+          VERSION="${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}"
+          sed -i "s|APP_VERSION_PLACEHOLDER|${VERSION}|g" lib/version.dart
+
+    #   - name: Set API base URL
+    #     working-directory: office_aschi_flutter
+    #     run: |
+    #       if [ -n "${{ vars.API_BASEURL }}" ]; then
+    #         sed -i "s|https://officeaschi.azurewebsites.net/api|${{ vars.API_BASEURL }}|g" lib/api_service.dart
+    #       fi
+
+      - name: Build APK (${{ env.BUILD_TYPE }})
+        working-directory: office_aschi_flutter
+        run: |
+          VERSION="${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}"
+          BUILD_NUM="${{ steps.vars.outputs.build_number }}"
+          if [ "${{ env.BUILD_TYPE }}" = "release" ]; then
+            flutter build apk --release --build-name="$VERSION" --build-number="$BUILD_NUM"
+          else
+            flutter build apk --debug --build-name="$VERSION" --build-number="$BUILD_NUM"
+          fi
+
+      - name: Rename APK
+        working-directory: office_aschi_flutter
+        run: |
+          VERSION="${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}"
+          if [ "${{ env.BUILD_TYPE }}" = "release" ]; then
+            mv build/app/outputs/flutter-apk/app-release.apk \
+               build/app/outputs/flutter-apk/office-aschi-flutter-${{ env.BUILD_TYPE }}-${VERSION}.apk
+          else
+            mv build/app/outputs/flutter-apk/app-debug.apk \
+               build/app/outputs/flutter-apk/office-aschi-flutter-${{ env.BUILD_TYPE }}-${VERSION}.apk
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.vars.outputs.build_number }}-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.sha_short }}
+          name: "Build #${{ steps.vars.outputs.build_number }} — Office Aschi Flutter (${{ env.BUILD_TYPE }})"
+          body: |
+            **${{ env.BUILD_TYPE }}** APK built from commit `${{ github.sha }}`
+            Version: `${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}` (code: ${{ steps.vars.outputs.build_number }})
+            Branch: `${{ github.ref_name }}`
+            Triggered by: `${{ github.actor }}`
+          files: office_aschi_flutter/build/app/outputs/flutter-apk/office-aschi-flutter-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}.apk

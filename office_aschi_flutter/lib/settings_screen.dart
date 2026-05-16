@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'main.dart' show themeNotifier, setThemeMode;
+import 'version.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -72,7 +73,11 @@ class SettingsScreen extends StatelessWidget {
                         color: cs.onSurfaceVariant,
                       ),
                       title: const Text('Office Aschi'),
-                      subtitle: const Text('v1.0.0'),
+                      subtitle: Text(
+                        appVersion == 'APP_VERSION_PLACEHOLDER'
+                            ? 'dev'
+                            : 'v$appVersion',
+                      ),
                     ),
                     const Divider(height: 1, indent: 56),
                     ListTile(
