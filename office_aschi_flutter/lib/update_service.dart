@@ -200,15 +200,19 @@ class UpdateService {
     }
   }
 
-  /// Removes old Office Aschi APKs from [dir], keeping only [currentName].
+  /// Removes old Office Aschi APKs for the current [channel] from [dir],
+  /// keeping [currentName] and any file from a different channel untouched.
   static Future<void> _cleanOldApks(Directory dir, String currentName) async {
+    final prefix = 'office-aschi-flutter-$channel-';
     try {
       await for (final entity in dir.list()) {
-        if (entity is File &&
-            entity.uri.pathSegments.last.startsWith('office-aschi-flutter-') &&
-            entity.path.endsWith('.apk') &&
-            !entity.path.endsWith(currentName)) {
-          await entity.delete();
+        if (entity is File) {
+          final name = entity.uri.pathSegments.last;
+          if (name.startsWith(prefix) &&
+              name.endsWith('.apk') &&
+              name != currentName) {
+            await entity.delete();
+          }
         }
       }
     } catch (_) {}
