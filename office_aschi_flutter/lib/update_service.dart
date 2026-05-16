@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 
 import 'version.dart';
@@ -114,11 +113,63 @@ class UpdateService {
     }
   }
 
-  /// Downloads the APK to temp storage, then launches the system installer.
+  /// Expected APK filename for a given update (mirrors the GitHub asset name).
+  static String apkFileName(AppUpdate update) {
+    return 'office-aschi-flutter-$channel-${update.version}.apk';
+  }
+
+  /// Returns the public Downloads directory.
+  static Future<Directory> _downloadDir() async {
+    final dir = Directory('/storage/emulated/0/Download');
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return dir;
+  }
+
+  /// Checks whether the APK for [update] is already fully downloaded.
+  /// Returns the [File] if it exists with the expected size, otherwise `null`.
+  static Future<File?> getExistingApk(AppUpdate update) async {
+    final dir = await _downloadDir();
+    final file = File('${dir.path}/${apkFileName(update)}');
+    if (await file.exists()) {
+      final length = await file.length();
+      // If the remote size is known, verify the file is complete.
+      if (update.sizeBytes > 0 && length == update.sizeBytes) return file;
+      if (update.sizeBytes <= 0 && length > 0) return file;
+      // Incomplete / corrupt – remove it.
+      await file.delete();
+    }
+    return null;
+  }
+
+  /// Installs an already-downloaded APK.
+  static Future<void> installApk(File file) async {
+    await OpenFilex.open(
+      file.path,
+      type: 'application/vnd.android.package-archive',
+    );
+  }
+
+  /// Downloads the APK to the Downloads folder (or installs an existing one)
+  /// then launches the system package installer.
   static Future<void> downloadAndInstall(
     AppUpdate update, {
     ValueChanged<double>? onProgress,
   }) async {
+    // If the APK was already downloaded, skip straight to install.
+    final existing = await getExistingApk(update);
+    if (existing != null) {
+      onProgress?.call(1.0);
+      await installApk(existing);
+      return;
+    }
+
+    final dir = await _downloadDir();
+    final fileName = apkFileName(update);
+    final file = File('${dir.path}/$fileName');
+
+    // Remove stale update APKs from previous versions.
+    await _cleanOldApks(dir, fileName);
+
     final httpClient = HttpClient();
     try {
       final request = await httpClient.getUrl(Uri.parse(update.downloadUrl));
@@ -131,8 +182,6 @@ class UpdateService {
       final totalBytes = response.contentLength > 0
           ? response.contentLength
           : update.sizeBytes;
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/office-aschi-update.apk');
       final sink = file.openWrite();
       int received = 0;
 
@@ -145,13 +194,24 @@ class UpdateService {
       }
       await sink.close();
 
-      await OpenFilex.open(
-        file.path,
-        type: 'application/vnd.android.package-archive',
-      );
+      await installApk(file);
     } finally {
       httpClient.close();
     }
+  }
+
+  /// Removes old Office Aschi APKs from [dir], keeping only [currentName].
+  static Future<void> _cleanOldApks(Directory dir, String currentName) async {
+    try {
+      await for (final entity in dir.list()) {
+        if (entity is File &&
+            entity.uri.pathSegments.last.startsWith('office-aschi-flutter-') &&
+            entity.path.endsWith('.apk') &&
+            !entity.path.endsWith(currentName)) {
+          await entity.delete();
+        }
+      }
+    } catch (_) {}
   }
 
   // -- helpers --------------------------------------------------------------
@@ -179,8 +239,12 @@ class UpdateService {
 /// launched automatically.
 Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
   final sizeMb = (update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
+  final existingApk = await UpdateService.getExistingApk(update);
+  final alreadyDownloaded = existingApk != null;
 
-  final shouldDownload = await showDialog<bool>(
+  if (!context.mounted) return;
+
+  final shouldProceed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       icon: const Icon(Icons.system_update, size: 36),
@@ -200,6 +264,15 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
             'Channel: ${UpdateService.channel}',
             style: Theme.of(ctx).textTheme.bodySmall,
           ),
+          if (alreadyDownloaded) ...[
+            const SizedBox(height: 8),
+            Text(
+              'APK already downloaded – ready to install.',
+              style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                color: Theme.of(ctx).colorScheme.primary,
+              ),
+            ),
+          ],
         ],
       ),
       actions: [
@@ -209,20 +282,26 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
         ),
         FilledButton.icon(
           onPressed: () => Navigator.pop(ctx, true),
-          icon: const Icon(Icons.download),
-          label: const Text('Download & Install'),
+          icon: Icon(alreadyDownloaded ? Icons.install_mobile : Icons.download),
+          label: Text(alreadyDownloaded ? 'Install' : 'Download & Install'),
         ),
       ],
     ),
   );
 
-  if (shouldDownload == true && context.mounted) {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _DownloadProgressDialog(update: update),
-    );
+  if (shouldProceed != true || !context.mounted) return;
+
+  // If already downloaded, install directly without the progress dialog.
+  if (alreadyDownloaded) {
+    await UpdateService.installApk(existingApk);
+    return;
   }
+
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _DownloadProgressDialog(update: update),
+  );
 }
 
 // ---------------------------------------------------------------------------
