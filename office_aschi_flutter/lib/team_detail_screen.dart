@@ -147,7 +147,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx, codeCtrl.text),
             child: const Text('Confirm'),
           ),
@@ -211,7 +211,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel'),
             ),
-            FilledButton(
+            ElevatedButton(
               onPressed: () async {
                 if (selected == null || codeCtrl.text.isEmpty) return;
                 try {
@@ -334,7 +334,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Deny'),
           ),
@@ -370,8 +370,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Remove'),
           ),
@@ -409,8 +409,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -471,7 +471,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+          ElevatedButton(
             onPressed: () async {
               try {
                 await _api.joinTeam(
@@ -520,11 +520,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+              const Icon(Icons.error_outline, size: 64),
               const SizedBox(height: 16),
               const Text('Team not found', style: TextStyle(fontSize: 20)),
               const SizedBox(height: 8),
-              FilledButton.icon(
+              ElevatedButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back to Teams'),
@@ -538,7 +538,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(_team?.name ?? 'Loading...'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
@@ -631,11 +630,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               ),
               Text(
                 '${DateFormat('MMM').format(_selectedDate)} ${_selectedDate.year}',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 DateFormat('EEEE').format(_selectedDate),
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -693,7 +698,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             ? 4
             : constraints.maxWidth > 500
             ? 3
-            : 2;
+            : constraints.maxWidth > 350
+            ? 2
+            : 1;
+        final aspectRatio = crossAxisCount == 1 ? 2.5 : 1.4;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -701,24 +709,28 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             crossAxisCount: crossAxisCount,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.4,
+            childAspectRatio: aspectRatio,
           ),
           itemCount: seats.length,
           itemBuilder: (context, index) {
             final seat = seats[index];
             final isBooked = seat.status == 'booked';
+            final cs = Theme.of(context).colorScheme;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             return Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
                   color: isBooked
-                      ? Colors.blue.shade200
-                      : Colors.green.shade200,
+                      ? cs.primary.withOpacity(0.4)
+                      : Colors.green.withOpacity(isDark ? 0.4 : 0.3),
                   width: 1.5,
                 ),
               ),
-              color: isBooked ? Colors.blue.shade50 : Colors.white,
+              color: isBooked
+                  ? cs.primaryContainer.withOpacity(isDark ? 0.3 : 1.0)
+                  : cs.surface,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -752,13 +764,13 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                         children: [
                           CircleAvatar(
                             radius: 14,
-                            backgroundColor: Colors.blue,
+                            backgroundColor: cs.primary,
                             child: Text(
                               seat.personName.isNotEmpty
                                   ? seat.personName[0].toUpperCase()
                                   : '?',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: cs.onPrimary,
                                 fontSize: 12,
                               ),
                             ),
@@ -798,7 +810,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.orange.shade200),
+        side: BorderSide(color: Colors.orange.withOpacity(0.4)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -835,232 +847,209 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   // ===================== MANAGE TAB =====================
   Widget _buildManageTab() {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.zero,
       children: [
-        // Seats management
         _buildManageSeats(),
-        const SizedBox(height: 16),
-        // Pending approvals
-        if (_pendingReportees.isNotEmpty) ...[
-          _buildPendingApprovals(),
-          const SizedBox(height: 16),
-        ],
-        // Members list
+        if (_pendingReportees.isNotEmpty) _buildPendingApprovals(),
         _buildMembersList(),
-        const SizedBox(height: 16),
-        // Danger zone
         _buildDangerZone(),
+        const SizedBox(height: 32),
       ],
     );
   }
 
-  Widget _buildManageSeats() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Manage Seats',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+  Widget _sectionHeader(String title, {IconData? icon, Color? color}) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 20, color: color ?? cs.primary),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: color ?? cs.primary,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
-            const SizedBox(height: 12),
-            Wrap(
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManageSeats() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader('Seats', icon: Icons.event_seat),
+        if (_seats.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Wrap(
               spacing: 8,
               runSpacing: 8,
               children: _seats
                   .map(
-                    (s) => Chip(
+                    (s) => InputChip(
                       label: Text(s.label),
-                      deleteIcon: const Icon(Icons.close, size: 16),
                       onDeleted: () => _deleteSeat(s),
+                      deleteIconColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant,
                     ),
                   )
                   .toList(),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _seatLabelCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'New seat label',
-                      hintText: 'e.g. Desk A1',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _seatLabelCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Desk A1',
+                    labelText: 'New seat label',
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    onSubmitted: (_) => _addSeat(),
+                    isDense: true,
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: _addSeat,
+                      tooltip: 'Add seat',
+                    ),
                   ),
+                  onSubmitted: (_) => _addSeat(),
                 ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: _addSeat,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add'),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
+        const Divider(),
+      ],
     );
   }
 
   Widget _buildPendingApprovals() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.orange.shade300),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Pending Approvals',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            ..._pendingReportees.map(
-              (r) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: Colors.orange,
-                  child: Text(
-                    r.friendlyName[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                title: Text(r.friendlyName),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FilledButton(
-                      onPressed: () => _approveReportee(r.id),
-                      child: const Text('Approve'),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () => _denyReportee(r),
-                      child: const Text('Deny'),
-                    ),
-                  ],
-                ),
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          'Pending Approvals',
+          icon: Icons.pending_actions,
+          color: Colors.orange,
+        ),
+        ..._pendingReportees.map(
+          (r) => ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.orange,
+              child: Text(
+                r.friendlyName[0].toUpperCase(),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
-          ],
+            title: Text(r.friendlyName),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  onPressed: () => _approveReportee(r.id),
+                  child: const Text('Approve'),
+                ),
+                TextButton(
+                  onPressed: () => _denyReportee(r),
+                  style: TextButton.styleFrom(foregroundColor: cs.error),
+                  child: const Text('Deny'),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+        const Divider(),
+      ],
     );
   }
 
   Widget _buildMembersList() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Members',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader('Members', icon: Icons.group),
+        if (_approvedReportees.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              'No approved members yet.',
+              style: TextStyle(color: cs.onSurfaceVariant),
             ),
-            const SizedBox(height: 8),
-            if (_approvedReportees.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
+          )
+        else
+          ..._approvedReportees.map((r) {
+            const colors = [
+              Colors.blue,
+              Colors.teal,
+              Colors.purple,
+              Colors.green,
+              Colors.orange,
+              Colors.cyan,
+              Colors.pink,
+              Colors.red,
+            ];
+            final color = colors[r.id % colors.length];
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: color,
                 child: Text(
-                  'No approved members yet.',
-                  style: TextStyle(color: Colors.grey),
+                  r.friendlyName[0].toUpperCase(),
+                  style: const TextStyle(color: Colors.white),
                 ),
-              )
-            else
-              ..._approvedReportees.map((r) {
-                const colors = [
-                  Colors.blue,
-                  Colors.teal,
-                  Colors.purple,
-                  Colors.green,
-                  Colors.orange,
-                  Colors.cyan,
-                  Colors.pink,
-                  Colors.red,
-                ];
-                final color = colors[r.id % colors.length];
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: color,
-                    child: Text(
-                      r.friendlyName[0].toUpperCase(),
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  title: Text(r.friendlyName),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _removeReportee(r),
-                    tooltip: 'Remove member',
-                  ),
-                );
-              }),
-          ],
-        ),
-      ),
+              ),
+              title: Text(r.friendlyName),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _removeReportee(r),
+                tooltip: 'Remove member',
+              ),
+            );
+          }),
+        const Divider(),
+      ],
     );
   }
 
   Widget _buildDangerZone() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.red),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Danger Zone',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.red,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Deleting this team will remove all seats, members, and bookings permanently.',
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _deleteTeam,
-              icon: const Icon(Icons.delete_forever),
-              label: const Text('Delete Team'),
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            ),
-          ],
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          'Danger Zone',
+          icon: Icons.warning_amber_rounded,
+          color: cs.error,
         ),
-      ),
+        ListTile(
+          leading: Icon(Icons.delete_forever, color: cs.error),
+          title: const Text('Delete this team'),
+          subtitle: const Text(
+            'Removes all seats, members, and bookings permanently.',
+          ),
+          trailing: TextButton(
+            onPressed: _deleteTeam,
+            style: TextButton.styleFrom(foregroundColor: cs.error),
+            child: const Text('Delete'),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1072,27 +1061,21 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withOpacity(isDark ? 0.2 : 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: color.shade700,
+          color: isDark ? color.withOpacity(0.9) : color.withOpacity(0.8),
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
       ),
     );
-  }
-}
-
-extension _ColorShade2 on Color {
-  Color get shade700 {
-    final hsl = HSLColor.fromColor(this);
-    return hsl.withLightness((hsl.lightness - 0.15).clamp(0.0, 1.0)).toColor();
   }
 }

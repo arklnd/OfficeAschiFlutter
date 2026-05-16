@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'team_search_screen.dart';
 import 'team_detail_screen.dart';
+import 'settings_screen.dart';
 
-final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
 void main() {
   runApp(const MyApp());
@@ -23,6 +24,12 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             useMaterial3: true,
+            cardTheme: CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ),
           darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
@@ -30,9 +37,18 @@ class MyApp extends StatelessWidget {
               brightness: Brightness.dark,
             ),
             useMaterial3: true,
+            cardTheme: CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ),
           home: const TeamSearchScreen(),
           onGenerateRoute: (settings) {
+            if (settings.name == '/settings') {
+              return MaterialPageRoute(builder: (_) => const SettingsScreen());
+            }
             if (settings.name != null && settings.name!.startsWith('/team/')) {
               final id = int.tryParse(
                 settings.name!.replaceFirst('/team/', ''),
