@@ -1,6 +1,6 @@
 {
-    "name": "office_aschi_flutter",
-    "short_name": "office_aschi_flutter",
+    "name": "OfficeAschi",
+    "short_name": "OfficeAschi",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
