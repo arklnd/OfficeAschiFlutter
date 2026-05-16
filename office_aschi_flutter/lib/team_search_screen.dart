@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'models.dart';
 import 'team_detail_screen.dart';
+import 'main.dart' show themeNotifier;
 
 class TeamSearchScreen extends StatefulWidget {
   const TeamSearchScreen({super.key});
@@ -119,6 +120,21 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
       appBar: AppBar(
         title: const Text('Seat Booking'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: Icon(
+              themeNotifier.value == ThemeMode.dark
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            tooltip: 'Toggle theme',
+            onPressed: () {
+              themeNotifier.value = themeNotifier.value == ThemeMode.dark
+                  ? ThemeMode.light
+                  : ThemeMode.dark;
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -205,7 +221,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                           crossAxisCount: crossAxisCount,
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
-                          childAspectRatio: 2.2,
+                          childAspectRatio: 2.8,
                         ),
                         itemCount: _teams.length,
                         itemBuilder: (context, index) {
