@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'api_service.dart';
 import 'models.dart';
+import 'totp_service.dart';
+import 'qr_download.dart';
 import 'team_detail_screen.dart';
 import 'settings_screen.dart';
 
@@ -46,70 +50,181 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
   }
 
   void _openCreateTeamDialog() {
-    final nameCtrl = TextEditingController();
-    final secretCtrl = TextEditingController();
+    final nameCtrl = TextEditingController(
+      text: 'Team-${DateTime.now().millisecondsSinceEpoch}',
+    );
     final codeCtrl = TextEditingController();
+    String secret = TotpService.generateSecret();
+    String? verifyError;
+    bool creating = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Create Team'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Team Name (optional)',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final label = nameCtrl.text.isNotEmpty ? nameCtrl.text : 'Team';
+          final otpUri = TotpService.getOtpAuthUri(secret, '$label (Manager)');
+
+          return AlertDialog(
+            title: const Text('Create Team'),
+            content: SizedBox(
+              width: 320,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(labelText: 'Team Name'),
+                      onChanged: (_) {
+                        secret = TotpService.generateSecret();
+                        codeCtrl.clear();
+                        setDialogState(() => verifyError = null);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Scan this QR code with your authenticator app',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: QrImageView(
+                        data: otpUri,
+                        version: QrVersions.auto,
+                        size: 200,
+                        eyeStyle: const QrEyeStyle(
+                          eyeShape: QrEyeShape.square,
+                          color: Color(0xFF1a237e),
+                        ),
+                        dataModuleStyle: const QrDataModuleStyle(
+                          dataModuleShape: QrDataModuleShape.square,
+                          color: Color(0xFF1a237e),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: SelectableText(
+                        secret,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            final name = nameCtrl.text.isNotEmpty
+                                ? nameCtrl.text
+                                : 'team';
+                            downloadQrImage(otpUri, 'totp-$name-manager.png');
+                          },
+                          icon: const Icon(Icons.download, size: 16),
+                          label: const Text('Download QR'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: secret));
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(content: Text('Secret copied!')),
+                            );
+                          },
+                          icon: const Icon(Icons.copy, size: 16),
+                          label: const Text('Copy Secret'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: codeCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Verify TOTP Code',
+                        hintText: '6-digit code',
+                        errorText: verifyError,
+                      ),
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: secretCtrl,
-              decoration: const InputDecoration(labelText: 'TOTP Secret Key'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: codeCtrl,
-              decoration: const InputDecoration(labelText: 'TOTP Code'),
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                final team = await _api.createTeam(
-                  nameCtrl.text.isNotEmpty ? nameCtrl.text : null,
-                  secretCtrl.text,
-                  codeCtrl.text,
-                );
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TeamDetailScreen(teamId: team.id),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(
-                    ctx,
-                  ).showSnackBar(SnackBar(content: Text(e.toString())));
-                }
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: creating
+                    ? null
+                    : () async {
+                        if (codeCtrl.text.length != 6) {
+                          setDialogState(
+                            () => verifyError = 'Enter 6-digit code',
+                          );
+                          return;
+                        }
+                        setDialogState(() {
+                          verifyError = null;
+                          creating = true;
+                        });
+                        try {
+                          final team = await _api.createTeam(
+                            nameCtrl.text.isNotEmpty ? nameCtrl.text : null,
+                            secret,
+                            codeCtrl.text,
+                          );
+                          await TotpService.storeSecret(
+                            'manager',
+                            team.id,
+                            secret,
+                          );
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    TeamDetailScreen(teamId: team.id),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          setDialogState(() {
+                            verifyError = e.toString().replaceFirst(
+                              'Exception: ',
+                              '',
+                            );
+                            creating = false;
+                          });
+                        }
+                      },
+                child: Text(creating ? 'Creating...' : 'Create'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -119,7 +234,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Seat Booking'),
+        title: const Text('Office Aschi'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -162,76 +277,93 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(_error!, style: TextStyle(color: cs.error)),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _loadTeams,
-                              child: const Text('Retry'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_error!, style: TextStyle(color: cs.error)),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _loadTeams,
+                          child: const Text('Retry'),
                         ),
-                      )
-                    : _teams.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.group_work, size: 48, color: cs.onSurfaceVariant),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'No teams found',
-                                  style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                            itemCount: _teams.length,
-                            itemBuilder: (context, index) {
-                              final team = _teams[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  leading: CircleAvatar(
-                                    backgroundColor: cs.primaryContainer,
-                                    child: Text(
-                                      team.name[0].toUpperCase(),
-                                      style: TextStyle(
-                                        color: cs.onPrimaryContainer,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  title: Text(
-                                    team.name,
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
-                                  ),
-                                  subtitle: Row(
-                                    children: [
-                                      _Tag(label: '${team.seatCount} seats', color: Colors.blue),
-                                      const SizedBox(width: 8),
-                                      _Tag(label: '${team.memberCount} members', color: Colors.green),
-                                    ],
-                                  ),
-                                  trailing: const Icon(Icons.chevron_right),
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => TeamDetailScreen(teamId: team.id),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
+                      ],
+                    ),
+                  )
+                : _teams.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.group_work,
+                          size: 48,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No teams found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: cs.onSurfaceVariant,
                           ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                    itemCount: _teams.length,
+                    itemBuilder: (context, index) {
+                      final team = _teams[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: cs.primaryContainer,
+                            child: Text(
+                              team.name[0].toUpperCase(),
+                              style: TextStyle(
+                                color: cs.onPrimaryContainer,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            team.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Row(
+                            children: [
+                              _Tag(
+                                label: '${team.seatCount} seats',
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              _Tag(
+                                label: '${team.memberCount} members',
+                                color: Colors.green,
+                              ),
+                            ],
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    TeamDetailScreen(teamId: team.id),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

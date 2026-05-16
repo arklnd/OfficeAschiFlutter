@@ -37,6 +37,9 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.2
   shared_preferences: ^2.5.5
+  qr_flutter: ^4.1.0
+  otp: ^3.2.0
+  base32: ^2.2.0
 
 dev_dependencies:
   flutter_test:

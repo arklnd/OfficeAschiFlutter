@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'api_service.dart';
 import 'models.dart';
+import 'totp_service.dart';
+import 'qr_download.dart';
 import 'package:intl/intl.dart';
 
 class TeamDetailScreen extends StatefulWidget {
@@ -525,68 +528,205 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
 
   void _openJoinDialog() {
     final nameCtrl = TextEditingController();
-    final secretCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
+    String secret = '';
+    String? verifyError;
+    bool joining = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Join Team'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Your Name'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: secretCtrl,
-              decoration: const InputDecoration(labelText: 'TOTP Secret Key'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: codeCtrl,
-              decoration: const InputDecoration(labelText: 'TOTP Code'),
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await _api.joinTeam(
-                  widget.teamId,
-                  nameCtrl.text,
-                  secretCtrl.text,
-                  codeCtrl.text,
-                );
-                if (ctx.mounted) Navigator.pop(ctx);
-                _loadAll();
-                if (mounted)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Join request sent! Awaiting manager approval.',
-                      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final name = nameCtrl.text.trim();
+          final hasName = name.isNotEmpty;
+          final teamName = _team?.name ?? 'Team';
+          final otpUri = hasName
+              ? TotpService.getOtpAuthUri(secret, '$name @ $teamName')
+              : '';
+
+          return AlertDialog(
+            title: Text('Join ${_team?.name ?? "Team"}'),
+            content: SizedBox(
+              width: 320,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(labelText: 'Your Name'),
+                      onChanged: (_) {
+                        final n = nameCtrl.text.trim();
+                        if (n.isNotEmpty) {
+                          secret = TotpService.generateSecret();
+                        } else {
+                          secret = '';
+                        }
+                        codeCtrl.clear();
+                        setDialogState(() => verifyError = null);
+                      },
                     ),
-                  );
-              } catch (e) {
-                if (ctx.mounted)
-                  ScaffoldMessenger.of(
-                    ctx,
-                  ).showSnackBar(SnackBar(content: Text(e.toString())));
-              }
-            },
-            child: const Text('Join'),
-          ),
-        ],
+                    if (hasName) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Scan this QR code with your authenticator app',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: QrImageView(
+                          data: otpUri,
+                          version: QrVersions.auto,
+                          size: 200,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Color(0xFF1a237e),
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Color(0xFF1a237e),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.3),
+                          ),
+                        ),
+                        child: SelectableText(
+                          secret,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () {
+                              downloadQrImage(otpUri, 'totp-$name.png');
+                            },
+                            icon: const Icon(Icons.download, size: 16),
+                            label: const Text('Download QR'),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: secret));
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(content: Text('Secret copied!')),
+                              );
+                            },
+                            icon: const Icon(Icons.copy, size: 16),
+                            label: const Text('Copy Secret'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: codeCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Verify TOTP Code',
+                          hintText: '6-digit code',
+                          errorText: verifyError,
+                        ),
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 24),
+                      Text(
+                        'Enter your name to generate a TOTP secret',
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: joining
+                    ? null
+                    : () async {
+                        final name = nameCtrl.text.trim();
+                        if (name.isEmpty) {
+                          setDialogState(
+                            () => verifyError = 'Name is required',
+                          );
+                          return;
+                        }
+                        if (codeCtrl.text.length != 6) {
+                          setDialogState(
+                            () => verifyError = 'Enter 6-digit code',
+                          );
+                          return;
+                        }
+                        setDialogState(() {
+                          verifyError = null;
+                          joining = true;
+                        });
+                        try {
+                          final r = await _api.joinTeam(
+                            widget.teamId,
+                            name,
+                            secret,
+                            codeCtrl.text,
+                          );
+                          await TotpService.storeSecret(
+                            'reportee',
+                            r.id,
+                            secret,
+                          );
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          _loadAll();
+                          if (mounted)
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Joined as ${r.friendlyName}! Awaiting manager approval.',
+                                ),
+                              ),
+                            );
+                        } catch (e) {
+                          setDialogState(() {
+                            verifyError = e.toString().replaceFirst(
+                              'Exception: ',
+                              '',
+                            );
+                            joining = false;
+                          });
+                        }
+                      },
+                child: Text(joining ? 'Joining...' : 'Join'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
