@@ -118,12 +118,14 @@ class BookingResponse {
 // --- Waitlist ---
 class WaitlistInfo {
   final int bookingId;
+  final int? reporteeId;
   final String reporteeName;
   final String desiredSeatLabel;
   final String waitlistedSince;
 
   WaitlistInfo({
     required this.bookingId,
+    this.reporteeId,
     required this.reporteeName,
     required this.desiredSeatLabel,
     required this.waitlistedSince,
@@ -131,6 +133,7 @@ class WaitlistInfo {
 
   factory WaitlistInfo.fromJson(Map<String, dynamic> json) => WaitlistInfo(
     bookingId: json['bookingId'],
+    reporteeId: json['reporteeId'],
     reporteeName: json['reporteeName'],
     desiredSeatLabel: json['desiredSeatLabel'],
     waitlistedSince: json['waitlistedSince'],

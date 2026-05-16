@@ -50,12 +50,11 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
   }
 
   void _openCreateTeamDialog() {
-    final nameCtrl = TextEditingController(
-      text: 'Team-${DateTime.now().millisecondsSinceEpoch}',
-    );
+    final nameCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
     String secret = TotpService.generateSecret();
     String? verifyError;
+    String? nameError;
     bool creating = false;
 
     showDialog(
@@ -75,11 +74,17 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                   children: [
                     TextField(
                       controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Team Name'),
+                      decoration: InputDecoration(
+                        labelText: 'Team Name',
+                        errorText: nameError,
+                      ),
                       onChanged: (_) {
                         secret = TotpService.generateSecret();
                         codeCtrl.clear();
-                        setDialogState(() => verifyError = null);
+                        setDialogState(() {
+                          verifyError = null;
+                          nameError = null;
+                        });
                       },
                     ),
                     const SizedBox(height: 16),
@@ -187,6 +192,12 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                 onPressed: creating
                     ? null
                     : () async {
+                        if (nameCtrl.text.trim().isEmpty) {
+                          setDialogState(
+                            () => nameError = 'Team name is required',
+                          );
+                          return;
+                        }
                         if (codeCtrl.text.length != 6) {
                           setDialogState(
                             () => verifyError = 'Enter 6-digit code',
@@ -195,11 +206,12 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                         }
                         setDialogState(() {
                           verifyError = null;
+                          nameError = null;
                           creating = true;
                         });
                         try {
                           final team = await _api.createTeam(
-                            nameCtrl.text.isNotEmpty ? nameCtrl.text : null,
+                            nameCtrl.text.trim(),
                             secret,
                             codeCtrl.text,
                           );

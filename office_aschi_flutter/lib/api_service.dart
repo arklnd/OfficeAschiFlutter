@@ -62,7 +62,10 @@ class ApiService {
       Uri.parse('$baseUrl/teams/$id'),
       headers: _totpHeaders('manager', id, totpCode),
     );
-    if (response.statusCode != 200) throw Exception('Failed to delete team');
+    if (response.statusCode != 200) {
+      final err = json.decode(response.body);
+      throw Exception(err['error'] ?? 'Failed to delete team');
+    }
   }
 
   // --- Seats ---
@@ -88,7 +91,8 @@ class ApiService {
     );
     if (response.statusCode == 201)
       return SeatResponse.fromJson(json.decode(response.body));
-    throw Exception('Failed to add seat');
+    final err = json.decode(response.body);
+    throw Exception(err['error'] ?? 'Failed to add seat');
   }
 
   Future<void> deleteSeat(int teamId, int seatId, String totpCode) async {
@@ -136,7 +140,7 @@ class ApiService {
     throw Exception(err['error'] ?? 'Failed to join team');
   }
 
-  Future<void> approveReportee(
+  Future<ReporteeResponse> approveReportee(
     int teamId,
     int reporteeId,
     String totpCode,
@@ -145,7 +149,10 @@ class ApiService {
       Uri.parse('$baseUrl/teams/$teamId/reportees/$reporteeId/approve'),
       headers: _totpHeaders('manager', teamId, totpCode),
     );
-    if (response.statusCode != 200) throw Exception('Failed to approve');
+    if (response.statusCode == 200)
+      return ReporteeResponse.fromJson(json.decode(response.body));
+    final err = json.decode(response.body);
+    throw Exception(err['error'] ?? 'Failed to approve');
   }
 
   Future<void> denyReportee(int teamId, int reporteeId, String totpCode) async {
@@ -153,7 +160,10 @@ class ApiService {
       Uri.parse('$baseUrl/teams/$teamId/reportees/$reporteeId/deny'),
       headers: _totpHeaders('manager', teamId, totpCode),
     );
-    if (response.statusCode != 200) throw Exception('Failed to deny');
+    if (response.statusCode != 200) {
+      final err = json.decode(response.body);
+      throw Exception(err['error'] ?? 'Failed to deny');
+    }
   }
 
   Future<void> removeReportee(
@@ -165,7 +175,10 @@ class ApiService {
       Uri.parse('$baseUrl/teams/$teamId/reportees/$reporteeId'),
       headers: _totpHeaders('manager', teamId, totpCode),
     );
-    if (response.statusCode != 200) throw Exception('Failed to remove');
+    if (response.statusCode != 200) {
+      final err = json.decode(response.body);
+      throw Exception(err['error'] ?? 'Failed to remove');
+    }
   }
 
   // --- Bookings ---
@@ -208,7 +221,10 @@ class ApiService {
       Uri.parse('$baseUrl/bookings/$bookingId'),
       headers: _totpHeaders('reportee', reporteeId, totpCode),
     );
-    if (response.statusCode != 200) throw Exception('Failed to cancel booking');
+    if (response.statusCode != 200) {
+      final err = json.decode(response.body);
+      throw Exception(err['error'] ?? 'Failed to cancel booking');
+    }
   }
 
   // --- TOTP ---

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'models.dart';
 import 'totp_service.dart';
@@ -29,6 +30,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   bool _notFound = false;
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _seatLabelCtrl = TextEditingController();
+  int? _currentReporteeId;
 
   List<ReporteeResponse> get _approvedReportees =>
       _reportees.where((r) => r.isApproved).toList();
@@ -60,7 +62,16 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadCurrentReporteeId();
     _loadAll();
+  }
+
+  Future<void> _loadCurrentReporteeId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedId = prefs.getInt('reportee_${widget.teamId}');
+    if (savedId != null && mounted) {
+      setState(() => _currentReporteeId = savedId);
+    }
   }
 
   @override
@@ -200,7 +211,13 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       return;
     }
 
-    ReporteeResponse? selected = availableReportees.first;
+    ReporteeResponse? selected = _currentReporteeId != null
+        ? availableReportees.cast<ReporteeResponse?>().firstWhere(
+                (r) => r!.id == _currentReporteeId,
+                orElse: () => null,
+              ) ??
+              availableReportees.first
+        : availableReportees.first;
     final codeCtrl = TextEditingController();
 
     showDialog(
@@ -722,6 +739,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                             r.id,
                             secret,
                           );
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setInt('reportee_${widget.teamId}', r.id);
+                          _currentReporteeId = r.id;
                           if (ctx.mounted) Navigator.pop(ctx);
                           _loadAll();
                           if (mounted)
