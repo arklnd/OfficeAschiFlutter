@@ -355,8 +355,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Deny'),
           ),
         ],
