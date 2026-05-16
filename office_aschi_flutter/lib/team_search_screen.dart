@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -8,6 +9,8 @@ import 'totp_service.dart';
 import 'qr_download.dart';
 import 'team_detail_screen.dart';
 import 'settings_screen.dart';
+import 'update_service.dart';
+import 'version.dart';
 
 class TeamSearchScreen extends StatefulWidget {
   const TeamSearchScreen({super.key});
@@ -29,6 +32,22 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
     super.initState();
     _loadTeams();
     _recoverySub = _api.backendRecovered.stream.listen((_) => _loadTeams());
+    _checkForAppUpdate();
+  }
+
+  Future<void> _checkForAppUpdate() async {
+    // Skip in dev builds and on non-Android platforms.
+    if (kIsWeb) return;
+    if (appVersion == 'APP_VERSION_PLACEHOLDER') return;
+
+    // Let the UI settle before checking.
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+
+    final update = await UpdateService.checkForUpdate();
+    if (update != null && mounted) {
+      showUpdateDialog(context, update);
+    }
   }
 
   @override

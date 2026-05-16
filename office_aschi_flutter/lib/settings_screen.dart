@@ -1,9 +1,35 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'main.dart' show themeNotifier, setThemeMode;
+import 'update_service.dart';
 import 'version.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  static Future<void> _checkForUpdate(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    final update = await UpdateService.checkForUpdate();
+
+    if (!context.mounted) return;
+    Navigator.of(context).pop(); // dismiss spinner
+
+    if (update != null) {
+      showUpdateDialog(context, update);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You\'re already on the latest version.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +81,33 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              // Updates section (Android only)
+              if (!kIsWeb) ...[
+                Text(
+                  'Updates',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.system_update,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    title: const Text('Check for updates'),
+                    subtitle: Text('Channel: ${UpdateService.channel}'),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    onTap: () => _checkForUpdate(context),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
               // About section
               Text(
                 'About',
@@ -75,8 +128,8 @@ class SettingsScreen extends StatelessWidget {
                       title: const Text('Office Aschi'),
                       subtitle: Text(
                         appVersion == 'APP_VERSION_PLACEHOLDER'
-                            ? 'dev'
-                            : 'v$appVersion',
+                            ? 'dev (${UpdateService.channel})'
+                            : 'v$appVersion (${UpdateService.channel})',
                       ),
                     ),
                     const Divider(height: 1, indent: 56),

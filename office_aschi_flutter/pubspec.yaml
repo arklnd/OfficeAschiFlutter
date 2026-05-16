@@ -40,6 +40,8 @@ dependencies:
   qr_flutter: ^4.1.0
   otp: ^3.2.0
   base32: ^2.2.0
+  path_provider: ^2.1.0
+  open_filex: ^4.5.0
 
 dev_dependencies:
   flutter_test:
