@@ -29,6 +29,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   bool _loading = true;
   bool _availabilityLoading = false;
   bool _notFound = false;
+  String? _availabilityError;
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _seatLabelCtrl = TextEditingController();
   int? _currentReporteeId;
@@ -111,7 +112,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   }
 
   Future<void> _loadAvailability() async {
-    setState(() => _availabilityLoading = true);
+    setState(() {
+      _availabilityLoading = true;
+      _availabilityError = null;
+      _availability = null;
+    });
     try {
       final avail = await _api.getAvailability(widget.teamId, _dateString);
       setState(() {
@@ -123,6 +128,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       setState(() {
         _availabilityLoading = false;
         _loading = false;
+        _availabilityError = _api.noInternet.value
+            ? 'No internet connection'
+            : 'Unable to load availability';
       });
     }
   }
@@ -863,6 +871,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                     child: CircularProgressIndicator(),
                   ),
                 )
+              : _availabilityError != null
+              ? _buildAvailabilityError()
               : _buildSeatGrid(),
           // Waitlist
           if ((_availability?.waitlist ?? []).isNotEmpty) ...[
@@ -951,6 +961,50 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           ),
         _StatChip(label: '${a?.totalSeats ?? 0} total', color: Colors.grey),
       ],
+    );
+  }
+
+  Widget _buildAvailabilityError() {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cs.errorContainer.withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _api.noInternet.value
+                  ? Icons.wifi_off_rounded
+                  : Icons.cloud_off_rounded,
+              size: 36,
+              color: cs.error,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _availabilityError!,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap retry to reload bookings for this date.',
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _loadAvailability,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Retry'),
+          ),
+        ],
+      ),
     );
   }
 
