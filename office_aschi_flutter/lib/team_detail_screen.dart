@@ -621,8 +621,16 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                         spacing: 8,
                         children: [
                           TextButton.icon(
-                            onPressed: () {
-                              downloadQrImage(otpUri, 'totp-$name.png');
+                            onPressed: () async {
+                              final path = await downloadQrImage(
+                                otpUri,
+                                'totp-$name.png',
+                              );
+                              if (path != null && ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(content: Text('QR saved to $path')),
+                                );
+                              }
                             },
                             icon: const Icon(Icons.download, size: 16),
                             label: const Text('Download QR'),

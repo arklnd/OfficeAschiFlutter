@@ -134,11 +134,19 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                       spacing: 8,
                       children: [
                         TextButton.icon(
-                          onPressed: () {
+                          onPressed: () async {
                             final name = nameCtrl.text.isNotEmpty
                                 ? nameCtrl.text
                                 : 'team';
-                            downloadQrImage(otpUri, 'totp-$name-manager.png');
+                            final path = await downloadQrImage(
+                              otpUri,
+                              'totp-$name-manager.png',
+                            );
+                            if (path != null && ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(content: Text('QR saved to $path')),
+                              );
+                            }
                           },
                           icon: const Icon(Icons.download, size: 16),
                           label: const Text('Download QR'),

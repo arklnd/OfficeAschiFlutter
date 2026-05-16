@@ -7,7 +7,7 @@ import 'qr_download_stub.dart'
     if (dart.library.html) 'qr_download_web.dart'
     as platform;
 
-Future<void> downloadQrImage(String data, String filename) async {
+Future<String?> downloadQrImage(String data, String filename) async {
   final qrPainter = QrPainter(
     data: data,
     version: QrVersions.auto,
@@ -23,7 +23,7 @@ Future<void> downloadQrImage(String data, String filename) async {
 
   final image = await qrPainter.toImage(300);
   final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  if (byteData == null) return;
+  if (byteData == null) return null;
   final bytes = byteData.buffer.asUint8List();
-  platform.saveBytes(bytes, filename);
+  return await platform.saveBytes(bytes, filename);
 }
