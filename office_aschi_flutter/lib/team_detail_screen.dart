@@ -936,7 +936,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             : constraints.maxWidth > 350
             ? 2
             : 1;
-        final aspectRatio = crossAxisCount == 1 ? 2.5 : 1.4;
+        final aspectRatio = crossAxisCount == 1 ? 3.5 : 1.8;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
