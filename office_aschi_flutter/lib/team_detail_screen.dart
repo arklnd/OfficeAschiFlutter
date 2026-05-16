@@ -247,6 +247,27 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   }
 
   void _cancelBooking(BookingResponse booking) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Booking'),
+        content: Text(
+          'Cancel booking for ${booking.reporteeName} on ${booking.seatLabel}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Yes, cancel'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     final code = await _promptTotp(
       'Cancel Booking for ${booking.reporteeName}',
     );
