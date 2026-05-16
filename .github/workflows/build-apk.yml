@@ -63,6 +63,20 @@ jobs:
     #         sed -i "s|https://officeaschi.azurewebsites.net/api|${{ vars.API_BASEURL }}|g" lib/api_service.dart
     #       fi
 
+      - name: Decode keystore & create key.properties
+        if: env.BUILD_TYPE == 'release'
+        working-directory: office_aschi_flutter/android
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release-keystore.jks
+          cat > key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release-keystore.jks
+          EOF
+          # trim leading whitespace added by heredoc indentation
+          sed -i 's/^[[:space:]]*//' key.properties
+
       - name: Build APK (${{ env.BUILD_TYPE }})
         working-directory: office_aschi_flutter
         run: |
