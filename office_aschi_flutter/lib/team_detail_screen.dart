@@ -885,60 +885,71 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   }
 
   Widget _buildDateHero() {
-    return Row(
+    final cs = Theme.of(context).colorScheme;
+    return Column(
       children: [
-        IconButton(
-          onPressed: _goToPreviousDay,
-          icon: const Icon(Icons.chevron_left),
-        ),
-        InkWell(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: _selectedDate,
-              firstDate: DateTime(2024),
-              lastDate: DateTime(2030),
-            );
-            if (picked != null) {
-              setState(() => _selectedDate = picked);
-              _loadAvailability();
-            }
-          },
-          child: Column(
-            children: [
-              Text(
-                '${_selectedDate.day}',
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+        Row(
+          children: [
+            IconButton(
+              onPressed: _goToPreviousDay,
+              icon: Icon(Icons.chevron_left, size: 32, color: cs.onSurface),
+            ),
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime(2030),
+                  );
+                  if (picked != null) {
+                    setState(() => _selectedDate = picked);
+                    _loadAvailability();
+                  }
+                },
+                child: Column(
+                  children: [
+                    Text(
+                      '${_selectedDate.day}',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${DateFormat('MMMM').format(_selectedDate)} ${_selectedDate.year}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('EEEE').format(_selectedDate),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                '${DateFormat('MMM').format(_selectedDate)} ${_selectedDate.year}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Text(
-                DateFormat('EEEE').format(_selectedDate),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-        IconButton(
-          onPressed: _goToNextDay,
-          icon: const Icon(Icons.chevron_right),
+            ),
+            IconButton(
+              onPressed: _goToNextDay,
+              icon: Icon(Icons.chevron_right, size: 32, color: cs.onSurface),
+            ),
+          ],
         ),
         if (!_isToday)
-          TextButton.icon(
-            onPressed: _goToToday,
-            icon: const Icon(Icons.today, size: 18),
-            label: const Text('Today'),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: TextButton.icon(
+              onPressed: _goToToday,
+              icon: const Icon(Icons.today, size: 18),
+              label: const Text('Today'),
+            ),
           ),
       ],
     );
