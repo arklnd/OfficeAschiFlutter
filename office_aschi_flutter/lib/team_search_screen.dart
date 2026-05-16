@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -21,11 +22,20 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
   List<TeamSearchResult> _teams = [];
   bool _loading = true;
   String? _error;
+  late final StreamSubscription _recoverySub;
 
   @override
   void initState() {
     super.initState();
     _loadTeams();
+    _recoverySub = _api.backendRecovered.stream.listen((_) => _loadTeams());
+  }
+
+  @override
+  void dispose() {
+    _recoverySub.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTeams() async {
@@ -298,16 +308,52 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                 ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_error!, style: TextStyle(color: cs.error)),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: _loadTeams,
-                          child: const Text('Retry'),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: cs.errorContainer.withOpacity(0.3),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _api.noInternet.value
+                                  ? Icons.wifi_off_rounded
+                                  : Icons.cloud_off_rounded,
+                              size: 48,
+                              color: cs.error,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            _api.noInternet.value
+                                ? 'No Internet Connection'
+                                : 'Unable to Reach Server',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _api.noInternet.value
+                                ? 'Check your internet connection and try again.'
+                                : 'The backend server is not responding. It may be down for maintenance.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            onPressed: _loadTeams,
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: const Text('Try Again'),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 : _teams.isEmpty

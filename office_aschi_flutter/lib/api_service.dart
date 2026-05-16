@@ -1,11 +1,81 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'models.dart';
 
 class ApiService {
   final String baseUrl;
+  final String _serverBase;
 
-  ApiService({this.baseUrl = 'https://officeaschi.azurewebsites.net/api'});
+  /// Reactive health state
+  final ValueNotifier<bool> backendDown = ValueNotifier(false);
+
+  /// Reactive connectivity state
+  final ValueNotifier<bool> noInternet = ValueNotifier(false);
+
+  /// Emits when backend transitions from down → up
+  final StreamController<void> backendRecovered = StreamController.broadcast();
+
+  Timer? _healthTimer;
+
+  static ApiService? _instance;
+
+  factory ApiService({
+    String baseUrl = 'https://officeaschi.azurewebsites.net/api',
+  }) {
+    _instance ??= ApiService._internal(baseUrl: baseUrl);
+    return _instance!;
+  }
+
+  ApiService._internal({
+    this.baseUrl = 'https://officeaschi.azurewebsites.net/api',
+  }) : _serverBase = baseUrl.replaceAll(RegExp(r'/api$'), '') {
+    _pollHealth();
+  }
+
+  void _pollHealth() {
+    _checkHealth();
+    final delay = backendDown.value
+        ? const Duration(seconds: 10)
+        : const Duration(seconds: 30);
+    _healthTimer?.cancel();
+    _healthTimer = Timer(delay, _pollHealth);
+  }
+
+  Future<void> _checkHealth() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$_serverBase/health'))
+          .timeout(const Duration(seconds: 5));
+      noInternet.value = false;
+      final wasDown = backendDown.value;
+      backendDown.value = response.statusCode != 200;
+      if (wasDown && !backendDown.value) {
+        backendRecovered.add(null);
+      }
+    } on TimeoutException {
+      backendDown.value = true;
+    } catch (e) {
+      // Network errors (SocketException on native, XMLHttpRequest error on web)
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('socket') ||
+          msg.contains('network') ||
+          msg.contains('failed host lookup') ||
+          msg.contains('xmlhttprequest') ||
+          msg.contains('clientexception')) {
+        noInternet.value = true;
+      }
+      backendDown.value = true;
+    }
+  }
+
+  void dispose() {
+    _healthTimer?.cancel();
+    backendDown.dispose();
+    noInternet.dispose();
+    backendRecovered.close();
+  }
 
   Map<String, String> _jsonHeaders() => {
     'Content-Type': 'application/json; charset=UTF-8',

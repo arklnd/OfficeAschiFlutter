@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -31,6 +32,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _seatLabelCtrl = TextEditingController();
   int? _currentReporteeId;
+  late final StreamSubscription _recoverySub;
 
   List<ReporteeResponse> get _approvedReportees =>
       _reportees.where((r) => r.isApproved).toList();
@@ -64,6 +66,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     _tabController = TabController(length: 2, vsync: this);
     _loadCurrentReporteeId();
     _loadAll();
+    _recoverySub = _api.backendRecovered.stream.listen((_) => _loadAll());
   }
 
   Future<void> _loadCurrentReporteeId() async {
@@ -76,6 +79,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
 
   @override
   void dispose() {
+    _recoverySub.cancel();
     _tabController.dispose();
     _seatLabelCtrl.dispose();
     super.dispose();

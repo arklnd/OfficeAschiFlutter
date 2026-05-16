@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_service.dart';
 import 'team_search_screen.dart';
 import 'team_detail_screen.dart';
 import 'settings_screen.dart';
@@ -62,6 +63,15 @@ class MyApp extends StatelessWidget {
               ),
             ),
           ),
+          builder: (context, child) {
+            final api = ApiService();
+            return Column(
+              children: [
+                _HealthBanner(api: api),
+                Expanded(child: child ?? const SizedBox.shrink()),
+              ],
+            );
+          },
           home: const TeamSearchScreen(),
           onGenerateRoute: (settings) {
             if (settings.name == '/settings') {
@@ -79,6 +89,57 @@ class MyApp extends StatelessWidget {
             }
             return MaterialPageRoute(builder: (_) => const TeamSearchScreen());
           },
+        );
+      },
+    );
+  }
+}
+
+class _HealthBanner extends StatelessWidget {
+  final ApiService api;
+  const _HealthBanner({required this.api});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([api.backendDown, api.noInternet]),
+      builder: (context, _) {
+        if (!api.backendDown.value) return const SizedBox.shrink();
+        final isNoInternet = api.noInternet.value;
+        final cs = Theme.of(context).colorScheme;
+        return Material(
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 8,
+              bottom: 8,
+              left: 16,
+              right: 16,
+            ),
+            color: isNoInternet ? cs.errorContainer : cs.errorContainer,
+            child: Row(
+              children: [
+                Icon(
+                  isNoInternet ? Icons.wifi_off : Icons.cloud_off,
+                  size: 18,
+                  color: cs.onErrorContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isNoInternet
+                        ? 'No internet connection'
+                        : 'Backend server is unavailable',
+                    style: TextStyle(
+                      color: cs.onErrorContainer,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
