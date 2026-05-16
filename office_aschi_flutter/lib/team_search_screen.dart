@@ -306,20 +306,25 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
+            child: SearchBar(
               controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search teams...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                filled: true,
-                fillColor: cs.surfaceContainerHighest.withOpacity(0.4),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+              hintText: 'Search teams...',
+              leading: const Icon(Icons.search),
+              trailing: [
+                if (_searchController.text.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      _loadTeams();
+                    },
+                  ),
+              ],
               onSubmitted: (_) => _loadTeams(),
-              onChanged: (_) => _loadTeams(),
+              onChanged: (_) {
+                _loadTeams();
+                setState(() {});
+              },
             ),
           ),
           Expanded(
