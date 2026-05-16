@@ -154,6 +154,7 @@ class UpdateService {
   static Future<void> downloadAndInstall(
     AppUpdate update, {
     ValueChanged<double>? onProgress,
+    ValueChanged<List<String>>? onCleaned,
   }) async {
     // If the APK was already downloaded, skip straight to install.
     final existing = await getExistingApk(update);
@@ -168,7 +169,8 @@ class UpdateService {
     final file = File('${dir.path}/$fileName');
 
     // Remove stale update APKs from previous versions.
-    await _cleanOldApks(dir, fileName);
+    final cleaned = await _cleanOldApks(dir, fileName);
+    if (cleaned.isNotEmpty) onCleaned?.call(cleaned);
 
     final httpClient = HttpClient();
     try {
@@ -202,7 +204,12 @@ class UpdateService {
 
   /// Removes old Office Aschi APKs for the current [channel] from [dir],
   /// keeping [currentName] and any file from a different channel untouched.
-  static Future<void> _cleanOldApks(Directory dir, String currentName) async {
+  /// Returns the version strings of deleted files.
+  static Future<List<String>> _cleanOldApks(
+    Directory dir,
+    String currentName,
+  ) async {
+    final deleted = <String>[];
     final prefix = 'office-aschi-flutter-$channel-';
     try {
       await for (final entity in dir.list()) {
@@ -211,11 +218,17 @@ class UpdateService {
           if (name.startsWith(prefix) &&
               name.endsWith('.apk') &&
               name != currentName) {
+            // Extract version: "office-aschi-flutter-debug-23.0.0-a35ced4.apk" → "23.0.0-a35ced4"
+            final version = name
+                .replaceFirst(prefix, '')
+                .replaceFirst('.apk', '');
             await entity.delete();
+            deleted.add(version);
           }
         }
       }
     } catch (_) {}
+    return deleted;
   }
 
   // -- helpers --------------------------------------------------------------
@@ -337,6 +350,17 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
         widget.update,
         onProgress: (p) {
           if (mounted) setState(() => _progress = p);
+        },
+        onCleaned: (versions) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Removed old ${versions.length == 1 ? 'version' : 'versions'}: ${versions.map((v) => 'v$v').join(', ')}',
+                ),
+              ),
+            );
+          }
         },
       );
       // Install intent was launched – close the dialog.
