@@ -847,209 +847,216 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   // ===================== MANAGE TAB =====================
   Widget _buildManageTab() {
     return ListView(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(vertical: 12),
       children: [
         _buildManageSeats(),
-        if (_pendingReportees.isNotEmpty) _buildPendingApprovals(),
+        const SizedBox(height: 12),
+        if (_pendingReportees.isNotEmpty) ...[
+          _buildPendingApprovals(),
+          const SizedBox(height: 12),
+        ],
         _buildMembersList(),
+        const SizedBox(height: 12),
         _buildDangerZone(),
         const SizedBox(height: 32),
       ],
     );
   }
 
-  Widget _sectionHeader(String title, {IconData? icon, Color? color}) {
+  Widget _buildManageSeats() {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 20, color: color ?? cs.primary),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: color ?? cs.primary,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildManageSeats() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader('Seats', icon: Icons.event_seat),
-        if (_seats.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _seats
-                  .map(
-                    (s) => InputChip(
-                      label: Text(s.label),
-                      onDeleted: () => _deleteSeat(s),
-                      deleteIconColor: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        color: cs.surfaceContainerLow,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _seatLabelCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Desk A1',
-                    labelText: 'New seat label',
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    isDense: true,
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: _addSeat,
-                      tooltip: 'Add seat',
-                    ),
-                  ),
-                  onSubmitted: (_) => _addSeat(),
+              Text(
+                'Seats',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
+              ),
+              if (_seats.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _seats
+                      .map(
+                        (s) => InputChip(
+                          label: Text(s.label),
+                          onDeleted: () => _deleteSeat(s),
+                        ),
+                      )
+                      .toList(),
                 ),
+              ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: _seatLabelCtrl,
+                decoration: InputDecoration(
+                  hintText: 'e.g. Desk A1',
+                  labelText: 'New seat label',
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: _addSeat,
+                    tooltip: 'Add seat',
+                  ),
+                ),
+                onSubmitted: (_) => _addSeat(),
               ),
             ],
           ),
         ),
-        const Divider(),
-      ],
+      ),
     );
   }
 
   Widget _buildPendingApprovals() {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(
-          'Pending Approvals',
-          icon: Icons.pending_actions,
-          color: Colors.orange,
-        ),
-        ..._pendingReportees.map(
-          (r) => ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.orange,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        color: cs.surfaceContainerLow,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
               child: Text(
-                r.friendlyName[0].toUpperCase(),
-                style: const TextStyle(color: Colors.white),
+                'Pending Approvals',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
               ),
             ),
-            title: Text(r.friendlyName),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextButton(
-                  onPressed: () => _approveReportee(r.id),
-                  child: const Text('Approve'),
+            ..._pendingReportees.map(
+              (r) => ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.orange,
+                  child: Text(
+                    r.friendlyName[0].toUpperCase(),
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () => _denyReportee(r),
-                  style: TextButton.styleFrom(foregroundColor: cs.error),
-                  child: const Text('Deny'),
+                title: Text(r.friendlyName),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () => _approveReportee(r.id),
+                      child: const Text('Approve'),
+                    ),
+                    TextButton(
+                      onPressed: () => _denyReportee(r),
+                      style: TextButton.styleFrom(foregroundColor: cs.error),
+                      child: const Text('Deny'),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+          ],
         ),
-        const Divider(),
-      ],
+      ),
     );
   }
 
   Widget _buildMembersList() {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader('Members', icon: Icons.group),
-        if (_approvedReportees.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text(
-              'No approved members yet.',
-              style: TextStyle(color: cs.onSurfaceVariant),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        color: cs.surfaceContainerLow,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text(
+                'Members',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
+              ),
             ),
-          )
-        else
-          ..._approvedReportees.map((r) {
-            const colors = [
-              Colors.blue,
-              Colors.teal,
-              Colors.purple,
-              Colors.green,
-              Colors.orange,
-              Colors.cyan,
-              Colors.pink,
-              Colors.red,
-            ];
-            final color = colors[r.id % colors.length];
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: color,
+            if (_approvedReportees.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Text(
-                  r.friendlyName[0].toUpperCase(),
-                  style: const TextStyle(color: Colors.white),
+                  'No approved members yet.',
+                  style: TextStyle(color: cs.onSurfaceVariant),
                 ),
-              ),
-              title: Text(r.friendlyName),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () => _removeReportee(r),
-                tooltip: 'Remove member',
-              ),
-            );
-          }),
-        const Divider(),
-      ],
+              )
+            else ...[
+              ..._approvedReportees.asMap().entries.map((entry) {
+                final i = entry.key;
+                final r = entry.value;
+                const colors = [
+                  Colors.blue,
+                  Colors.teal,
+                  Colors.purple,
+                  Colors.green,
+                  Colors.orange,
+                  Colors.cyan,
+                  Colors.pink,
+                  Colors.red,
+                ];
+                final color = colors[r.id % colors.length];
+                return Column(
+                  children: [
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: color,
+                        child: Text(
+                          r.friendlyName[0].toUpperCase(),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      title: Text(r.friendlyName),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _removeReportee(r),
+                        tooltip: 'Remove member',
+                      ),
+                    ),
+                    if (i < _approvedReportees.length - 1)
+                      const Divider(height: 1, indent: 72),
+                  ],
+                );
+              }),
+              const SizedBox(height: 8),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildDangerZone() {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(
-          'Danger Zone',
-          icon: Icons.warning_amber_rounded,
-          color: cs.error,
-        ),
-        ListTile(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        color: cs.errorContainer.withOpacity(0.3),
+        child: ListTile(
           leading: Icon(Icons.delete_forever, color: cs.error),
-          title: const Text('Delete this team'),
-          subtitle: const Text(
-            'Removes all seats, members, and bookings permanently.',
-          ),
+          title: Text('Delete this team', style: TextStyle(color: cs.error)),
+          subtitle: const Text('Removes all seats, members, and bookings.'),
           trailing: TextButton(
             onPressed: _deleteTeam,
             style: TextButton.styleFrom(foregroundColor: cs.error),
             child: const Text('Delete'),
           ),
         ),
-      ],
+      ),
     );
   }
 }
