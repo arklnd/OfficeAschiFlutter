@@ -126,21 +126,47 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     _loadAvailability();
   }
 
-  Future<String?> _promptTotp(String title) async {
+  Future<String?> _promptTotp(
+    String title, {
+    String? entityName,
+    String? reason,
+  }) async {
     final codeCtrl = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
-        content: TextField(
-          controller: codeCtrl,
-          decoration: const InputDecoration(
-            labelText: 'TOTP Code',
-            hintText: '6-digit code',
-          ),
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          autofocus: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (entityName != null && reason != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(text: 'Enter the 6-digit TOTP code for '),
+                      TextSpan(
+                        text: entityName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(text: ' to ${reason.toLowerCase()}.'),
+                    ],
+                  ),
+                ),
+              ),
+            TextField(
+              controller: codeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'TOTP Code',
+                hintText: '6-digit code',
+              ),
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              autofocus: true,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -196,6 +222,19 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                     )
                     .toList(),
                 onChanged: (v) => setDialogState(() => selected = v),
+              ),
+              const SizedBox(height: 8),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    const TextSpan(text: 'Enter the 6-digit TOTP code for '),
+                    TextSpan(
+                      text: selected?.friendlyName ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const TextSpan(text: ' to book seat.'),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -269,7 +308,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     );
     if (confirmed != true) return;
     final code = await _promptTotp(
-      'Cancel Booking for ${booking.reporteeName}',
+      'Cancel Booking',
+      entityName: booking.reporteeName,
+      reason: 'Cancel booking',
     );
     if (code == null || code.isEmpty) return;
     try {
@@ -290,7 +331,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   void _addSeat() async {
     final label = _seatLabelCtrl.text.trim();
     if (label.isEmpty) return;
-    final code = await _promptTotp('Add Seat "$label"');
+    final code = await _promptTotp(
+      'Add Seat',
+      entityName: _team?.name ?? '',
+      reason: 'Add seat',
+    );
     if (code == null || code.isEmpty) return;
     try {
       await _api.addSeat(widget.teamId, label, code);
@@ -309,7 +354,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   }
 
   void _deleteSeat(SeatResponse seat) async {
-    final code = await _promptTotp('Delete Seat "${seat.label}"');
+    final code = await _promptTotp(
+      'Delete Seat',
+      entityName: _team?.name ?? '',
+      reason: 'Delete seat',
+    );
     if (code == null || code.isEmpty) return;
     try {
       await _api.deleteSeat(widget.teamId, seat.id, code);
@@ -327,7 +376,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   }
 
   void _approveReportee(int reporteeId) async {
-    final code = await _promptTotp('Approve Member');
+    final code = await _promptTotp(
+      'Approve Member',
+      entityName: _team?.name ?? '',
+      reason: 'Approve member',
+    );
     if (code == null || code.isEmpty) return;
     try {
       await _api.approveReportee(widget.teamId, reporteeId, code);
@@ -364,7 +417,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       ),
     );
     if (confirmed != true) return;
-    final code = await _promptTotp('Deny ${r.friendlyName}');
+    final code = await _promptTotp(
+      'Deny Join Request',
+      entityName: _team?.name ?? '',
+      reason: 'Deny join request',
+    );
     if (code == null || code.isEmpty) return;
     try {
       await _api.denyReportee(widget.teamId, r.id, code);
@@ -401,7 +458,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       ),
     );
     if (confirmed != true) return;
-    final code = await _promptTotp('Remove ${r.friendlyName}');
+    final code = await _promptTotp(
+      'Remove Member',
+      entityName: _team?.name ?? '',
+      reason: 'Remove member',
+    );
     if (code == null || code.isEmpty) return;
     try {
       await _api.removeReportee(widget.teamId, r.id, code);
@@ -440,7 +501,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       ),
     );
     if (confirmed != true) return;
-    final code = await _promptTotp('Delete Team');
+    final code = await _promptTotp(
+      'Delete Team',
+      entityName: _team?.name ?? '',
+      reason: 'Delete team',
+    );
     if (code == null || code.isEmpty) return;
     try {
       await _api.deleteTeam(widget.teamId, code);
