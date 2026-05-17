@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
@@ -68,12 +69,20 @@ class MyApp extends StatelessWidget {
           ),
           builder: (context, child) {
             final api = ApiService();
-            return Column(
+            Widget content = Column(
               children: [
                 _HealthBanner(api: api),
                 Expanded(child: child ?? const SizedBox.shrink()),
               ],
             );
+            if (kDebugMode) {
+              content = Banner(
+                message: 'debug build',
+                location: BannerLocation.topStart,
+                child: content,
+              );
+            }
+            return content;
           },
           home: const TeamSearchScreen(),
           onGenerateRoute: (settings) {
