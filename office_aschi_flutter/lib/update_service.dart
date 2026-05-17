@@ -417,13 +417,24 @@ class DownloadManager {
   double _lastProgress = 0;
   DateTime _lastSpeedSample = DateTime.now();
 
-  /// Formatted elapsed time since download started.
-  String get elapsedFormatted {
-    if (startTime == null) return '';
-    final d = DateTime.now().difference(startTime!);
-    final m = d.inMinutes;
-    final s = d.inSeconds % 60;
-    return m > 0 ? '${m}m ${s}s' : '${s}s';
+  /// Formatted estimated time remaining.
+  String get remainingFormatted {
+    if (_speedBps <= 0 || activeUpdate == null) return '';
+    final remainingBytes = (1.0 - progress.value) * activeUpdate!.sizeBytes;
+    if (remainingBytes <= 0) return '';
+    final secondsLeft = (remainingBytes / _speedBps).round();
+    if (secondsLeft <= 0) return '';
+    if (secondsLeft >= 3600) {
+      final h = secondsLeft ~/ 3600;
+      final m = (secondsLeft % 3600) ~/ 60;
+      return '${h}h ${m}m left';
+    }
+    if (secondsLeft >= 60) {
+      final m = secondsLeft ~/ 60;
+      final s = secondsLeft % 60;
+      return '${m}m ${s}s left';
+    }
+    return '${secondsLeft}s left';
   }
 
   /// Formatted download speed.
@@ -575,11 +586,11 @@ class DownloadManager {
     final totalMb = (update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
     final dlMb = (p * update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
 
-    final elapsed = elapsedFormatted;
+    final remaining = remainingFormatted;
     final speed = speedFormatted;
     final subText = [
       '$dlMb / $totalMb MB — $percent%',
-      if (elapsed.isNotEmpty) elapsed,
+      if (remaining.isNotEmpty) remaining,
       if (speed.isNotEmpty) speed,
     ].join(' · ');
 
@@ -953,14 +964,14 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (_dm.elapsedFormatted.isNotEmpty)
+                    if (_dm.remainingFormatted.isNotEmpty)
                       Text(
-                        _dm.elapsedFormatted,
+                        _dm.remainingFormatted,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
-                    if (_dm.elapsedFormatted.isNotEmpty &&
+                    if (_dm.remainingFormatted.isNotEmpty &&
                         _dm.speedFormatted.isNotEmpty)
                       Text(
                         ' · ',
