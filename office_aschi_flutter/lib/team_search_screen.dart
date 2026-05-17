@@ -360,132 +360,168 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
             ),
           ),
           Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: cs.errorContainer.withOpacity(0.3),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              _api.noInternet.value
-                                  ? Icons.wifi_off_rounded
-                                  : Icons.cloud_off_rounded,
-                              size: 48,
-                              color: cs.error,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            _api.noInternet.value
-                                ? 'No Internet Connection'
-                                : 'Unable to Reach Server',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _api.noInternet.value
-                                ? 'Check your internet connection and try again.'
-                                : 'The backend server is not responding. It may be down for maintenance.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: cs.onSurfaceVariant,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          FilledButton.icon(
-                            onPressed: _loadTeams,
-                            icon: const Icon(Icons.refresh, size: 18),
-                            label: const Text('Try Again'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : _teams.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.group_work,
-                          size: 48,
-                          color: cs.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'No teams found',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
+            child: RefreshIndicator(
+              onRefresh: _loadTeams,
+              child: _loading
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 200),
+                        Center(child: CircularProgressIndicator()),
                       ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                    itemCount: _teams.length,
-                    itemBuilder: (context, index) {
-                      final team = _teams[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                    )
+                  : _error != null
+                  ? LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
                           ),
-                          leading: CircleAvatar(
-                            backgroundColor: cs.primaryContainer,
-                            child: Text(
-                              team.name[0].toUpperCase(),
-                              style: TextStyle(
-                                color: cs.onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: cs.errorContainer.withOpacity(0.3),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      _api.noInternet.value
+                                          ? Icons.wifi_off_rounded
+                                          : Icons.cloud_off_rounded,
+                                      size: 48,
+                                      color: cs.error,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    _api.noInternet.value
+                                        ? 'No Internet Connection'
+                                        : 'Unable to Reach Server',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _api.noInternet.value
+                                        ? 'Check your internet connection and try again.'
+                                        : 'The backend server is not responding. It may be down for maintenance.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: cs.onSurfaceVariant,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  FilledButton.icon(
+                                    onPressed: _loadTeams,
+                                    icon: const Icon(Icons.refresh, size: 18),
+                                    label: const Text('Try Again'),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          title: Text(
-                            team.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Row(
-                            children: [
-                              _Tag(
-                                label: '${team.seatCount} seats',
-                                color: Colors.blue,
-                              ),
-                              const SizedBox(width: 8),
-                              _Tag(
-                                label: '${team.memberCount} members',
-                                color: Colors.green,
-                              ),
-                            ],
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    TeamDetailScreen(teamId: team.id),
-                              ),
-                            );
-                          },
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    )
+                  : _teams.isEmpty
+                  ? LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.group_work,
+                                  size: 48,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'No teams found',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                      itemCount: _teams.length,
+                      itemBuilder: (context, index) {
+                        final team = _teams[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            leading: CircleAvatar(
+                              backgroundColor: cs.primaryContainer,
+                              child: Text(
+                                team.name[0].toUpperCase(),
+                                style: TextStyle(
+                                  color: cs.onPrimaryContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              team.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Row(
+                              children: [
+                                _Tag(
+                                  label: '${team.seatCount} seats',
+                                  color: Colors.blue,
+                                ),
+                                const SizedBox(width: 8),
+                                _Tag(
+                                  label: '${team.memberCount} members',
+                                  color: Colors.green,
+                                ),
+                              ],
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      TeamDetailScreen(teamId: team.id),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),
