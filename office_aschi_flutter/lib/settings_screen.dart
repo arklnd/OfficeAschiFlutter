@@ -127,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         title: const Text('Automatic update check'),
                         subtitle: const Text(
-                          'Check for updates when the app opens',
+                          'Check for updates when the app opens or using background updates.',
                         ),
                         value: _autoUpdate,
                         onChanged: _toggleAutoUpdate,
