@@ -37,6 +37,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   late final StreamSubscription _recoverySub;
   final ValueNotifier<String?> _clipboardOtp = ValueNotifier(null);
   String? _lastPastedOtp;
+  bool _awaitingAuthenticatorReturn = false;
 
   List<ReporteeResponse> get _approvedReportees =>
       _reportees.where((r) => r.isApproved).toList();
@@ -76,7 +77,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && _awaitingAuthenticatorReturn) {
+      _awaitingAuthenticatorReturn = false;
       _checkClipboardForOtp();
     }
   }
@@ -96,10 +98,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   void _pasteClipboardCode(TextEditingController ctrl, String code) {
     ctrl.text = code;
     _lastPastedOtp = code;
+    _awaitingAuthenticatorReturn = false;
     _clipboardOtp.value = null;
   }
 
   Future<void> _launchAuthenticator(BuildContext ctx) async {
+    _awaitingAuthenticatorReturn = true;
     // Try Google Authenticator, then Microsoft, then generic otpauth
     final uris = [
       Uri.parse('otpauth://'), // generic TOTP URI scheme
@@ -115,6 +119,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       } catch (_) {}
     }
     if (ctx.mounted) {
+      _awaitingAuthenticatorReturn = false;
       ScaffoldMessenger.of(ctx).showSnackBar(
         const SnackBar(
           content: Text('No authenticator app found. Please open it manually.'),
@@ -213,7 +218,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     String? reason,
   }) async {
     final codeCtrl = TextEditingController();
-    _checkClipboardForOtp();
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -312,7 +316,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               availableReportees.first
         : availableReportees.first;
     final codeCtrl = TextEditingController();
-    _checkClipboardForOtp();
 
     showDialog(
       context: context,
