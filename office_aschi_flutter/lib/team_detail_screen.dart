@@ -705,12 +705,21 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           TextButton.icon(
                             onPressed: () async {
                               final uri = Uri.parse(otpUri);
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(
+                              try {
+                                final launched = await launchUrl(
                                   uri,
                                   mode: LaunchMode.externalApplication,
                                 );
-                              } else {
+                                if (!launched && ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'No authenticator app found',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (_) {
                                 if (ctx.mounted) {
                                   ScaffoldMessenger.of(ctx).showSnackBar(
                                     const SnackBar(
