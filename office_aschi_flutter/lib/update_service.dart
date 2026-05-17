@@ -409,6 +409,32 @@ class DownloadManager {
 
   bool _cancelled = false;
 
+  /// When the current download started.
+  DateTime? startTime;
+
+  /// Current download speed in bytes/sec (smoothed).
+  double _speedBps = 0;
+  double _lastProgress = 0;
+  DateTime _lastSpeedSample = DateTime.now();
+
+  /// Formatted elapsed time since download started.
+  String get elapsedFormatted {
+    if (startTime == null) return '';
+    final d = DateTime.now().difference(startTime!);
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    return m > 0 ? '${m}m ${s}s' : '${s}s';
+  }
+
+  /// Formatted download speed.
+  String get speedFormatted {
+    if (_speedBps <= 0) return '';
+    if (_speedBps >= 1024 * 1024) {
+      return '${(_speedBps / (1024 * 1024)).toStringAsFixed(1)} MB/s';
+    }
+    return '${(_speedBps / 1024).toStringAsFixed(0)} KB/s';
+  }
+
   /// Whether a notification is currently showing progress.
   bool _notificationActive = false;
 
@@ -435,11 +461,16 @@ class DownloadManager {
     error = null;
     completed = false;
     progress.value = 0;
+    startTime = DateTime.now();
+    _speedBps = 0;
+    _lastProgress = 0;
+    _lastSpeedSample = DateTime.now();
 
     try {
       await UpdateService.downloadAndInstall(
         update,
         onProgress: (p) {
+          _updateSpeed(p, update.sizeBytes);
           progress.value = p;
           _updateNotificationIfActive(update, p);
         },
@@ -476,6 +507,24 @@ class DownloadManager {
     error = null;
     completed = false;
     progress.value = 0;
+    startTime = null;
+    _speedBps = 0;
+  }
+
+  void _updateSpeed(double p, int totalBytes) {
+    final now = DateTime.now();
+    final dt = now.difference(_lastSpeedSample).inMilliseconds;
+    if (dt > 500) {
+      // bytes downloaded since last sample
+      final bytesInInterval = (p - _lastProgress) * totalBytes;
+      final instantSpeed = bytesInInterval / (dt / 1000);
+      // Exponential moving average for smoothing
+      _speedBps = _speedBps == 0
+          ? instantSpeed
+          : _speedBps * 0.7 + instantSpeed * 0.3;
+      _lastProgress = p;
+      _lastSpeedSample = now;
+    }
   }
 
   // -- Notification helpers -------------------------------------------------
@@ -502,10 +551,18 @@ class DownloadManager {
     final totalMb = (update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
     final dlMb = (p * update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
 
+    final elapsed = elapsedFormatted;
+    final speed = speedFormatted;
+    final subText = [
+      '$dlMb / $totalMb MB — $percent%',
+      if (elapsed.isNotEmpty) elapsed,
+      if (speed.isNotEmpty) speed,
+    ].join(' · ');
+
     await plugin.show(
       _downloadNotifId,
       'Downloading update v${update.version}',
-      '$dlMb / $totalMb MB — $percent%',
+      subText,
       NotificationDetails(
         android: AndroidNotificationDetails(
           _downloadChannelId,
@@ -867,6 +924,34 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
                 Text(
                   '${(p * 100).toStringAsFixed(0)}%',
                   style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_dm.elapsedFormatted.isNotEmpty)
+                      Text(
+                        _dm.elapsedFormatted,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    if (_dm.elapsedFormatted.isNotEmpty &&
+                        _dm.speedFormatted.isNotEmpty)
+                      Text(
+                        ' · ',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    if (_dm.speedFormatted.isNotEmpty)
+                      Text(
+                        _dm.speedFormatted,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                  ],
                 ),
                 if (widget.update.changelog.isNotEmpty) ...[
                   const SizedBox(height: 16),
