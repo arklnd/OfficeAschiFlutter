@@ -1,3 +1,4 @@
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,69 +44,82 @@ class MyApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (context, themeMode, _) {
-        return MaterialApp(
-          navigatorKey: navigatorKey,
-          title: 'Office Aschi',
-          debugShowCheckedModeBanner: false,
-          themeMode: themeMode,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            useMaterial3: true,
-            cardTheme: CardThemeData(
-              elevation: 0,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        return DynamicColorBuilder(
+          builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+            return MaterialApp(
+              navigatorKey: navigatorKey,
+              title: 'Office Aschi',
+              debugShowCheckedModeBanner: false,
+              themeMode: themeMode,
+              theme: ThemeData(
+                colorScheme:
+                    lightDynamic ??
+                    ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+                useMaterial3: true,
+                cardTheme: CardThemeData(
+                  elevation: 0,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
               ),
-            ),
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.deepPurple,
-              brightness: Brightness.dark,
-            ),
-            useMaterial3: true,
-            cardTheme: CardThemeData(
-              elevation: 0,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+              darkTheme: ThemeData(
+                colorScheme:
+                    darkDynamic ??
+                    ColorScheme.fromSeed(
+                      seedColor: Colors.deepPurple,
+                      brightness: Brightness.dark,
+                    ),
+                useMaterial3: true,
+                cardTheme: CardThemeData(
+                  elevation: 0,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
               ),
-            ),
-          ),
-          builder: (context, child) {
-            final api = ApiService();
-            Widget content = Column(
-              children: [
-                _HealthBanner(api: api),
-                Expanded(child: child ?? const SizedBox.shrink()),
-              ],
-            );
-            if (kDebugMode) {
-              content = Banner(
-                message: 'debug build',
-                location: BannerLocation.topStart,
-                child: content,
-              );
-            }
-            return content;
-          },
-          home: const TeamSearchScreen(),
-          onGenerateRoute: (settings) {
-            if (settings.name == '/settings') {
-              return MaterialPageRoute(builder: (_) => const SettingsScreen());
-            }
-            if (settings.name != null && settings.name!.startsWith('/team/')) {
-              final id = int.tryParse(
-                settings.name!.replaceFirst('/team/', ''),
-              );
-              if (id != null) {
-                return MaterialPageRoute(
-                  builder: (_) => TeamDetailScreen(teamId: id),
+              builder: (context, child) {
+                final api = ApiService();
+                Widget content = Column(
+                  children: [
+                    _HealthBanner(api: api),
+                    Expanded(child: child ?? const SizedBox.shrink()),
+                  ],
                 );
-              }
-            }
-            return MaterialPageRoute(builder: (_) => const TeamSearchScreen());
+                if (kDebugMode) {
+                  content = Banner(
+                    message: 'debug build',
+                    location: BannerLocation.topStart,
+                    child: content,
+                  );
+                }
+                return content;
+              },
+              home: const TeamSearchScreen(),
+              onGenerateRoute: (settings) {
+                if (settings.name == '/settings') {
+                  return MaterialPageRoute(
+                    builder: (_) => const SettingsScreen(),
+                  );
+                }
+                if (settings.name != null &&
+                    settings.name!.startsWith('/team/')) {
+                  final id = int.tryParse(
+                    settings.name!.replaceFirst('/team/', ''),
+                  );
+                  if (id != null) {
+                    return MaterialPageRoute(
+                      builder: (_) => TeamDetailScreen(teamId: id),
+                    );
+                  }
+                }
+                return MaterialPageRoute(
+                  builder: (_) => const TeamSearchScreen(),
+                );
+              },
+            );
           },
         );
       },
