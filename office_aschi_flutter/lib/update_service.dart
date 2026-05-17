@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -174,11 +176,15 @@ class UpdateService {
   /// locked, transient network errors). It writes to a `.part` temp file and
   /// uses HTTP `Range` headers to resume from the last received byte. Up to
   /// [maxRetries] automatic retries are attempted with exponential back-off.
+  ///
+  /// Prefer using [DownloadManager] instead — it wraps this method with
+  /// singleton state, notification support, and cancellation.
   static Future<void> downloadAndInstall(
     AppUpdate update, {
     ValueChanged<double>? onProgress,
     ValueChanged<List<String>>? onCleaned,
     int maxRetries = 5,
+    bool Function()? isCancelled,
   }) async {
     // If the APK was already downloaded, skip straight to install.
     final existing = await getExistingApk(update);
@@ -201,6 +207,10 @@ class UpdateService {
     int attempt = 0;
 
     while (true) {
+      if (isCancelled?.call() == true) {
+        throw Exception('Download cancelled');
+      }
+
       HttpClient? httpClient;
       try {
         // Determine how many bytes we already have from a previous attempt.
@@ -244,6 +254,9 @@ class UpdateService {
 
         try {
           await for (final chunk in response) {
+            if (isCancelled?.call() == true) {
+              throw Exception('Download cancelled');
+            }
             sink.add(chunk);
             received += chunk.length;
             if (totalBytes > 0) {
@@ -262,12 +275,23 @@ class UpdateService {
           );
         }
 
+        // Verify the .part file on disk matches what we expect.
+        final partLen = await partFile.length();
+        if (totalBytes > 0 && partLen != totalBytes) {
+          await partFile.delete();
+          throw Exception(
+            'File verification failed (disk: $partLen, expected: $totalBytes bytes)',
+          );
+        }
+
         // Download complete – rename .part → final file.
         await partFile.rename(file.path);
         onProgress?.call(1.0);
         await installApk(file);
         return; // success – exit loop
       } catch (e) {
+        if (e.toString().contains('Download cancelled')) rethrow;
+
         attempt++;
         httpClient?.close(force: true);
 
@@ -349,6 +373,207 @@ class UpdateService {
         )
         .join('\n');
     return bullets;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Download Manager – singleton that survives dialog dismissal
+// ---------------------------------------------------------------------------
+
+/// Notification IDs & channel for download progress.
+const _downloadNotifId = 42;
+const _downloadChannelId = 'download_progress';
+const _downloadChannelName = 'Download Progress';
+
+/// Manages a single active download with progress tracking, notification
+/// support, and cancellation. Survives dialog open/close.
+class DownloadManager {
+  DownloadManager._();
+  static final DownloadManager instance = DownloadManager._();
+
+  /// Current download progress (0.0 – 1.0).
+  final ValueNotifier<double> progress = ValueNotifier(0);
+
+  /// Non-null while a download is in progress or completed.
+  AppUpdate? activeUpdate;
+
+  /// `true` while a download Future is running.
+  bool get isDownloading => _downloading;
+  bool _downloading = false;
+
+  /// Error message if the last download failed.
+  String? error;
+
+  /// Whether download completed successfully (APK installer launched).
+  bool completed = false;
+
+  bool _cancelled = false;
+
+  /// Whether a notification is currently showing progress.
+  bool _notificationActive = false;
+
+  FlutterLocalNotificationsPlugin? _notifPlugin;
+
+  Future<FlutterLocalNotificationsPlugin> _getNotifPlugin() async {
+    if (_notifPlugin != null) return _notifPlugin!;
+    _notifPlugin = FlutterLocalNotificationsPlugin();
+    await _notifPlugin!.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      ),
+    );
+    return _notifPlugin!;
+  }
+
+  /// Start downloading [update]. No-op if already downloading the same update.
+  Future<void> start(AppUpdate update) async {
+    if (_downloading && activeUpdate?.tagName == update.tagName) return;
+
+    activeUpdate = update;
+    _downloading = true;
+    _cancelled = false;
+    error = null;
+    completed = false;
+    progress.value = 0;
+
+    try {
+      await UpdateService.downloadAndInstall(
+        update,
+        onProgress: (p) {
+          progress.value = p;
+          _updateNotificationIfActive(update, p);
+        },
+        isCancelled: () => _cancelled,
+      );
+      completed = true;
+    } catch (e) {
+      if (!_cancelled) {
+        error = e.toString();
+      }
+    } finally {
+      _downloading = false;
+      if (_notificationActive) {
+        if (completed) {
+          await _showCompletedNotification(update);
+        } else if (_cancelled) {
+          await _dismissNotification();
+        } else {
+          await _showFailedNotification(update);
+        }
+      }
+    }
+  }
+
+  /// Cancel the active download. Partial file is kept for resume.
+  void cancel() {
+    _cancelled = true;
+    _dismissNotification();
+  }
+
+  /// Reset state so a new download can start.
+  void reset() {
+    activeUpdate = null;
+    error = null;
+    completed = false;
+    progress.value = 0;
+  }
+
+  // -- Notification helpers -------------------------------------------------
+
+  /// Call when the dialog is dismissed while download is active.
+  Future<void> showNotification(AppUpdate update) async {
+    if (!_downloading) return;
+    _notificationActive = true;
+    await _updateNotificationIfActive(update, progress.value);
+  }
+
+  /// Call when the dialog is re-shown to stop the notification.
+  Future<void> hideNotification() async {
+    _notificationActive = false;
+    await _dismissNotification();
+  }
+
+  Future<void> _updateNotificationIfActive(AppUpdate update, double p) async {
+    if (!_notificationActive) return;
+    if (kIsWeb) return;
+
+    final plugin = await _getNotifPlugin();
+    final percent = (p * 100).round();
+    final totalMb = (update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
+    final dlMb = (p * update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
+
+    await plugin.show(
+      _downloadNotifId,
+      'Downloading update v${update.version}',
+      '$dlMb / $totalMb MB — $percent%',
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _downloadChannelId,
+          _downloadChannelName,
+          channelDescription: 'Shows download progress for app updates',
+          importance: Importance.low,
+          priority: Priority.low,
+          onlyAlertOnce: true,
+          ongoing: true,
+          autoCancel: false,
+          showProgress: true,
+          maxProgress: 100,
+          progress: percent,
+          actions: [
+            const AndroidNotificationAction(
+              'cancel_download',
+              'Cancel',
+              showsUserInterface: false,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCompletedNotification(AppUpdate update) async {
+    _notificationActive = false;
+    if (kIsWeb) return;
+    final plugin = await _getNotifPlugin();
+    await plugin.show(
+      _downloadNotifId,
+      'Update ready',
+      'v${update.version} downloaded — tap to install',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _downloadChannelId,
+          _downloadChannelName,
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFailedNotification(AppUpdate update) async {
+    _notificationActive = false;
+    if (kIsWeb) return;
+    final plugin = await _getNotifPlugin();
+    await plugin.show(
+      _downloadNotifId,
+      'Download failed',
+      'v${update.version} — open app to retry',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _downloadChannelId,
+          _downloadChannelName,
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _dismissNotification() async {
+    _notificationActive = false;
+    if (kIsWeb) return;
+    final plugin = await _getNotifPlugin();
+    await plugin.cancel(_downloadNotifId);
   }
 }
 
@@ -473,8 +698,7 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
               icon: Icon(
                 alreadyDownloaded ? Icons.install_mobile : Icons.download,
               ),
-              label:
-                  Text(alreadyDownloaded ? 'Install' : 'Download & Install'),
+              label: Text(alreadyDownloaded ? 'Install' : 'Download & Install'),
             ),
           ],
         ),
@@ -490,9 +714,17 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
     return;
   }
 
+  final dm = DownloadManager.instance;
+
+  // If the same update is already downloading, just re-attach the dialog.
+  if (!dm.isDownloading || dm.activeUpdate?.tagName != update.tagName) {
+    // Not downloading → start fresh (DownloadManager handles partial resume).
+    dm.reset();
+  }
+
   await showDialog(
     context: context,
-    barrierDismissible: false,
+    barrierDismissible: true,
     builder: (_) => _DownloadProgressDialog(update: update),
   );
 }
@@ -512,62 +744,79 @@ class _DownloadProgressDialog extends StatefulWidget {
 
 class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
     with WidgetsBindingObserver {
-  double _progress = 0;
+  final DownloadManager _dm = DownloadManager.instance;
   String? _error;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _startDownload();
+    _dm.progress.addListener(_onProgress);
+    // Stop notification if it was showing (we're back in the dialog).
+    _dm.hideNotification();
+
+    if (_dm.isDownloading) {
+      // Re-attach to existing download – nothing to start.
+    } else if (_dm.completed) {
+      // Already done – close immediately.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pop();
+      });
+    } else if (_dm.error != null) {
+      _error = _dm.error;
+    } else {
+      _startDownload();
+    }
   }
 
   @override
   void dispose() {
+    _dm.progress.removeListener(_onProgress);
     WidgetsBinding.instance.removeObserver(this);
+
+    // If still downloading when dialog is dismissed, show notification.
+    if (_dm.isDownloading) {
+      _dm.showNotification(widget.update);
+    }
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // No-op – the download runs in an isolate-like Future that survives
-    // paused/resumed lifecycle. We just keep the UI updated when resumed.
     if (state == AppLifecycleState.resumed && mounted) {
-      setState(() {}); // refresh UI in case progress changed while paused
+      setState(() {});
     }
+  }
+
+  void _onProgress() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _startDownload() async {
     setState(() {
       _error = null;
     });
-    try {
-      await UpdateService.downloadAndInstall(
-        widget.update,
-        onProgress: (p) {
-          if (mounted) {
-            setState(() {
-              _progress = p;
-            });
-          }
-        },
-        onCleaned: (versions) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Removed old ${versions.length == 1 ? 'version' : 'versions'}: ${versions.map((v) => 'v$v').join(', ')}',
-                ),
-              ),
-            );
-          }
-        },
-      );
-      // Install intent was launched – close the dialog.
-      if (mounted) Navigator.of(context).pop();
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+
+    await _dm.start(widget.update);
+
+    if (!mounted) return;
+
+    if (_dm.completed) {
+      // Close dialog after a moment – installer was launched.
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) Navigator.of(context).pop();
+      });
+    } else if (_dm.error != null) {
+      setState(() => _error = _dm.error);
+    } else {
+      // Cancelled while dialog open – just close.
+      Navigator.of(context).pop();
     }
+  }
+
+  void _onCancel() {
+    _dm.cancel();
+    Navigator.of(context).pop();
   }
 
   @override
@@ -591,52 +840,68 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
       );
     }
 
+    final p = _dm.progress.value;
     final totalMb = (widget.update.sizeBytes / (1024 * 1024)).toStringAsFixed(
       1,
     );
-    final downloadedMb = (_progress * widget.update.sizeBytes / (1024 * 1024))
+    final downloadedMb = (p * widget.update.sizeBytes / (1024 * 1024))
         .toStringAsFixed(1);
 
-    return AlertDialog(
-      title: const Text('Downloading Update'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 400, maxWidth: 340),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              LinearProgressIndicator(
-                value: _progress > 0 ? _progress : null,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              const SizedBox(height: 12),
-              Text('$downloadedMb / $totalMb MB'),
-              const SizedBox(height: 4),
-              Text(
-                '${(_progress * 100).toStringAsFixed(0)}%',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              if (widget.update.changelog.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'What\'s New',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
+    return PopScope(
+      canPop: true,
+      child: AlertDialog(
+        title: const Text('Downloading Update'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 400, maxWidth: 340),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(
+                  value: p > 0 ? p : null,
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                const Divider(),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    widget.update.changelog,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                const SizedBox(height: 12),
+                Text('$downloadedMb / $totalMb MB'),
+                const SizedBox(height: 4),
+                Text(
+                  '${(p * 100).toStringAsFixed(0)}%',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
+                if (widget.update.changelog.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'What\'s New',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  const Divider(),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      widget.update.changelog,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
+        actions: [
+          TextButton.icon(
+            onPressed: _onCancel,
+            icon: const Icon(Icons.cancel_outlined, size: 18),
+            label: const Text('Cancel'),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.minimize, size: 18),
+            label: const Text('Background'),
+          ),
+        ],
       ),
     );
   }
