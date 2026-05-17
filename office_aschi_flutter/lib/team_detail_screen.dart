@@ -93,6 +93,36 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     _clipboardOtp.value = null;
   }
 
+  void _pasteAndClearClipboard(TextEditingController ctrl, String code) {
+    ctrl.text = code;
+    Clipboard.setData(const ClipboardData(text: ''));
+    _clipboardOtp.value = null;
+  }
+
+  Future<void> _launchAuthenticator(BuildContext ctx) async {
+    // Try Google Authenticator, then Microsoft, then generic otpauth
+    final uris = [
+      Uri.parse('otpauth://'), // generic TOTP URI scheme
+      Uri.parse('googleauthenticator://'), // Google Authenticator
+      Uri.parse('msauth://'), // Microsoft Authenticator
+    ];
+    for (final uri in uris) {
+      try {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      } catch (_) {}
+    }
+    if (ctx.mounted) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content: Text('No authenticator app found. Please open it manually.'),
+        ),
+      );
+    }
+  }
+
   Future<void> _loadCurrentReporteeId() async {
     final prefs = await SharedPreferences.getInstance();
     final savedId = prefs.getInt('reportee_${widget.teamId}');
@@ -230,15 +260,18 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      codeCtrl.text = code;
-                      _clipboardOtp.value = null;
-                    },
+                    onPressed: () => _pasteAndClearClipboard(codeCtrl, code),
                     icon: const Icon(Icons.content_paste, size: 18),
                     label: Text('Paste code: $code'),
                   ),
                 );
               },
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => _launchAuthenticator(ctx),
+              icon: const Icon(Icons.open_in_new, size: 18),
+              label: const Text('Open Authenticator App'),
             ),
           ],
         ),
@@ -336,15 +369,18 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                   return Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        codeCtrl.text = code;
-                        _clipboardOtp.value = null;
-                      },
+                      onPressed: () => _pasteAndClearClipboard(codeCtrl, code),
                       icon: const Icon(Icons.content_paste, size: 18),
                       label: Text('Paste code: $code'),
                     ),
                   );
                 },
+              ),
+              const SizedBox(height: 4),
+              TextButton.icon(
+                onPressed: () => _launchAuthenticator(ctx),
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Open Authenticator App'),
               ),
             ],
           ),
@@ -830,8 +866,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                             padding: const EdgeInsets.only(top: 4),
                             child: OutlinedButton.icon(
                               onPressed: () {
-                                codeCtrl.text = code;
-                                _clipboardOtp.value = null;
+                                _pasteAndClearClipboard(codeCtrl, code);
                                 setDialogState(() {});
                               },
                               icon: const Icon(Icons.content_paste, size: 18),
