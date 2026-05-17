@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'background_update.dart';
 import 'main.dart' show themeNotifier, setThemeMode;
 import 'update_service.dart';
 import 'version.dart';
@@ -29,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _toggleAutoUpdate(bool value) async {
     setState(() => _autoUpdate = value);
     await UpdateService.setAutoUpdateEnabled(value);
+    await BackgroundUpdateManager.syncWithPreference();
   }
 
   static Future<void> _checkForUpdate(BuildContext context) async {

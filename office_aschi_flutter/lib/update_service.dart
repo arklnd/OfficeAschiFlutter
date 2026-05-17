@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'background_update.dart';
 import 'version.dart';
 
 // ---------------------------------------------------------------------------
@@ -461,6 +462,7 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
               onPressed: () {
                 if (dontShowAgain) {
                   UpdateService.setAutoUpdateEnabled(false);
+                  BackgroundUpdateManager.cancel();
                 }
                 Navigator.pop(ctx, false);
               },

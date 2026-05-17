@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'background_update.dart';
 import 'team_search_screen.dart';
 import 'team_detail_screen.dart';
 import 'settings_screen.dart';
@@ -23,6 +24,8 @@ void main() async {
       orElse: () => ThemeMode.system,
     );
   }
+  await BackgroundUpdateManager.init();
+  await BackgroundUpdateManager.syncWithPreference();
   runApp(const MyApp());
 }
 
