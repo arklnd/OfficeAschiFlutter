@@ -439,15 +439,38 @@ class DownloadManager {
   bool _notificationActive = false;
 
   FlutterLocalNotificationsPlugin? _notifPlugin;
+  bool _notifInitialized = false;
 
-  Future<FlutterLocalNotificationsPlugin> _getNotifPlugin() async {
-    if (_notifPlugin != null) return _notifPlugin!;
+  /// Initialize the notification plugin eagerly. Call once early (e.g. from
+  /// main or before first download).
+  Future<void> initNotifications() async {
+    if (_notifInitialized) return;
+    if (kIsWeb) return;
     _notifPlugin = FlutterLocalNotificationsPlugin();
     await _notifPlugin!.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
     );
+    // Request permission on Android 13+
+    await _notifPlugin!
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
+    _notifInitialized = true;
+  }
+
+  FlutterLocalNotificationsPlugin _getNotifPluginSync() {
+    if (_notifPlugin == null) {
+      // Fallback: init synchronously (notification may not show on first call)
+      _notifPlugin = FlutterLocalNotificationsPlugin();
+      _notifPlugin!.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        ),
+      );
+    }
     return _notifPlugin!;
   }
 
@@ -530,10 +553,11 @@ class DownloadManager {
   // -- Notification helpers -------------------------------------------------
 
   /// Call when the dialog is dismissed while download is active.
-  Future<void> showNotification(AppUpdate update) async {
+  void showNotification(AppUpdate update) {
     if (!_downloading) return;
     _notificationActive = true;
-    await _updateNotificationIfActive(update, progress.value);
+    // Fire-and-forget — plugin is already initialized.
+    _updateNotificationIfActive(update, progress.value);
   }
 
   /// Call when the dialog is re-shown to stop the notification.
@@ -546,7 +570,7 @@ class DownloadManager {
     if (!_notificationActive) return;
     if (kIsWeb) return;
 
-    final plugin = await _getNotifPlugin();
+    final plugin = _getNotifPluginSync();
     final percent = (p * 100).round();
     final totalMb = (update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
     final dlMb = (p * update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
@@ -591,7 +615,7 @@ class DownloadManager {
   Future<void> _showCompletedNotification(AppUpdate update) async {
     _notificationActive = false;
     if (kIsWeb) return;
-    final plugin = await _getNotifPlugin();
+    final plugin = _getNotifPluginSync();
     await plugin.show(
       _downloadNotifId,
       'Update ready',
@@ -610,7 +634,7 @@ class DownloadManager {
   Future<void> _showFailedNotification(AppUpdate update) async {
     _notificationActive = false;
     if (kIsWeb) return;
-    final plugin = await _getNotifPlugin();
+    final plugin = _getNotifPluginSync();
     await plugin.show(
       _downloadNotifId,
       'Download failed',
@@ -629,7 +653,7 @@ class DownloadManager {
   Future<void> _dismissNotification() async {
     _notificationActive = false;
     if (kIsWeb) return;
-    final plugin = await _getNotifPlugin();
+    final plugin = _getNotifPluginSync();
     await plugin.cancel(_downloadNotifId);
   }
 }

@@ -6,6 +6,7 @@ import 'background_update.dart';
 import 'team_search_screen.dart';
 import 'team_detail_screen.dart';
 import 'settings_screen.dart';
+import 'update_service.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
@@ -27,6 +28,7 @@ void main() async {
   }
   await BackgroundUpdateManager.init();
   await BackgroundUpdateManager.syncWithPreference();
+  await DownloadManager.instance.initNotifications();
   runApp(const MyApp());
 }
 
