@@ -9,6 +9,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'background_update.dart';
+import 'main.dart' show navigatorKey;
 import 'version.dart';
 
 // ---------------------------------------------------------------------------
@@ -462,6 +463,7 @@ class DownloadManager {
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
+      onDidReceiveNotificationResponse: _onNotificationTap,
     );
     // Request permission on Android 13+
     await _notifPlugin!
@@ -480,9 +482,30 @@ class DownloadManager {
         const InitializationSettings(
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         ),
+        onDidReceiveNotificationResponse: _onNotificationTap,
       );
     }
     return _notifPlugin!;
+  }
+
+  /// Handles notification tap — reopens the download progress dialog.
+  void _onNotificationTap(NotificationResponse response) {
+    if (response.payload != 'download_progress') return;
+    _reopenDownloadDialog();
+  }
+
+  /// Reopens the download dialog over the current screen using the global
+  /// navigator key.
+  void _reopenDownloadDialog() {
+    final update = activeUpdate;
+    if (update == null) return;
+    final ctx = navigatorKey.currentState?.overlay?.context;
+    if (ctx == null) return;
+    showDialog(
+      context: ctx,
+      barrierDismissible: true,
+      builder: (_) => _DownloadProgressDialog(update: update),
+    );
   }
 
   /// Start downloading [update]. No-op if already downloading the same update.
@@ -620,6 +643,7 @@ class DownloadManager {
           ],
         ),
       ),
+      payload: 'download_progress',
     );
   }
 

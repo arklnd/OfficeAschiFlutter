@@ -8,6 +8,9 @@ import 'team_detail_screen.dart';
 import 'settings_screen.dart';
 import 'update_service.dart';
 
+/// Global navigator key – used to show dialogs from notification taps.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
 Future<void> setThemeMode(ThemeMode mode) async {
@@ -41,6 +44,7 @@ class MyApp extends StatelessWidget {
       valueListenable: themeNotifier,
       builder: (context, themeMode, _) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'Office Aschi',
           debugShowCheckedModeBanner: false,
           themeMode: themeMode,
