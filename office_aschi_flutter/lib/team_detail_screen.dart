@@ -36,6 +36,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   int? _currentReporteeId;
   late final StreamSubscription _recoverySub;
   final ValueNotifier<String?> _clipboardOtp = ValueNotifier(null);
+  String? _lastPastedOtp;
 
   List<ReporteeResponse> get _approvedReportees =>
       _reportees.where((r) => r.isApproved).toList();
@@ -71,7 +72,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     _loadCurrentReporteeId();
     _loadAll();
     _recoverySub = _api.backendRecovered.stream.listen((_) => _loadAll());
-    _checkClipboardForOtp();
   }
 
   @override
@@ -85,7 +85,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text != null) {
       final text = data!.text!.trim();
-      if (RegExp(r'^\d{6}$').hasMatch(text)) {
+      if (RegExp(r'^\d{6}$').hasMatch(text) && text != _lastPastedOtp) {
         _clipboardOtp.value = text;
         return;
       }
@@ -93,9 +93,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     _clipboardOtp.value = null;
   }
 
-  void _pasteAndClearClipboard(TextEditingController ctrl, String code) {
+  void _pasteClipboardCode(TextEditingController ctrl, String code) {
     ctrl.text = code;
-    Clipboard.setData(const ClipboardData(text: ''));
+    _lastPastedOtp = code;
     _clipboardOtp.value = null;
   }
 
@@ -260,7 +260,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: OutlinedButton.icon(
-                    onPressed: () => _pasteAndClearClipboard(codeCtrl, code),
+                    onPressed: () => _pasteClipboardCode(codeCtrl, code),
                     icon: const Icon(Icons.content_paste, size: 18),
                     label: Text('Paste code: $code'),
                   ),
@@ -369,7 +369,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                   return Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: OutlinedButton.icon(
-                      onPressed: () => _pasteAndClearClipboard(codeCtrl, code),
+                      onPressed: () => _pasteClipboardCode(codeCtrl, code),
                       icon: const Icon(Icons.content_paste, size: 18),
                       label: Text('Paste code: $code'),
                     ),
@@ -866,7 +866,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                             padding: const EdgeInsets.only(top: 4),
                             child: OutlinedButton.icon(
                               onPressed: () {
-                                _pasteAndClearClipboard(codeCtrl, code);
+                                _pasteClipboardCode(codeCtrl, code);
                                 setDialogState(() {});
                               },
                               icon: const Icon(Icons.content_paste, size: 18),
