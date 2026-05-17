@@ -13,11 +13,18 @@ import 'update_service.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+final ValueNotifier<bool> dynamicColorNotifier = ValueNotifier(true);
 
 Future<void> setThemeMode(ThemeMode mode) async {
   themeNotifier.value = mode;
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('themeMode', mode.name);
+}
+
+Future<void> setDynamicColor(bool enabled) async {
+  dynamicColorNotifier.value = enabled;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('dynamicColor', enabled);
 }
 
 void main() async {
@@ -30,6 +37,7 @@ void main() async {
       orElse: () => ThemeMode.system,
     );
   }
+  dynamicColorNotifier.value = prefs.getBool('dynamicColor') ?? true;
   await BackgroundUpdateManager.init();
   await BackgroundUpdateManager.syncWithPreference();
   await DownloadManager.instance.initNotifications();
@@ -46,77 +54,84 @@ class MyApp extends StatelessWidget {
       builder: (context, themeMode, _) {
         return DynamicColorBuilder(
           builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-            return MaterialApp(
-              navigatorKey: navigatorKey,
-              title: 'Office Aschi',
-              debugShowCheckedModeBanner: false,
-              themeMode: themeMode,
-              theme: ThemeData(
-                colorScheme:
-                    lightDynamic ??
-                    ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-                useMaterial3: true,
-                cardTheme: CardThemeData(
-                  elevation: 0,
-                  clipBehavior: Clip.antiAlias,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-              darkTheme: ThemeData(
-                colorScheme:
-                    darkDynamic ??
-                    ColorScheme.fromSeed(
-                      seedColor: Colors.deepPurple,
-                      brightness: Brightness.dark,
+            return ValueListenableBuilder<bool>(
+              valueListenable: dynamicColorNotifier,
+              builder: (context, useDynamic, _) {
+                final effectiveLight = useDynamic ? lightDynamic : null;
+                final effectiveDark = useDynamic ? darkDynamic : null;
+                return MaterialApp(
+                  navigatorKey: navigatorKey,
+                  title: 'Office Aschi',
+                  debugShowCheckedModeBanner: false,
+                  themeMode: themeMode,
+                  theme: ThemeData(
+                    colorScheme:
+                        effectiveLight ??
+                        ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+                    useMaterial3: true,
+                    cardTheme: CardThemeData(
+                      elevation: 0,
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                useMaterial3: true,
-                cardTheme: CardThemeData(
-                  elevation: 0,
-                  clipBehavior: Clip.antiAlias,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-              ),
-              builder: (context, child) {
-                final api = ApiService();
-                Widget content = Column(
-                  children: [
-                    _HealthBanner(api: api),
-                    Expanded(child: child ?? const SizedBox.shrink()),
-                  ],
-                );
-                if (kDebugMode) {
-                  content = Banner(
-                    message: 'debug build',
-                    location: BannerLocation.topStart,
-                    child: content,
-                  );
-                }
-                return content;
-              },
-              home: const TeamSearchScreen(),
-              onGenerateRoute: (settings) {
-                if (settings.name == '/settings') {
-                  return MaterialPageRoute(
-                    builder: (_) => const SettingsScreen(),
-                  );
-                }
-                if (settings.name != null &&
-                    settings.name!.startsWith('/team/')) {
-                  final id = int.tryParse(
-                    settings.name!.replaceFirst('/team/', ''),
-                  );
-                  if (id != null) {
-                    return MaterialPageRoute(
-                      builder: (_) => TeamDetailScreen(teamId: id),
+                  darkTheme: ThemeData(
+                    colorScheme:
+                        effectiveDark ??
+                        ColorScheme.fromSeed(
+                          seedColor: Colors.deepPurple,
+                          brightness: Brightness.dark,
+                        ),
+                    useMaterial3: true,
+                    cardTheme: CardThemeData(
+                      elevation: 0,
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                  builder: (context, child) {
+                    final api = ApiService();
+                    Widget content = Column(
+                      children: [
+                        _HealthBanner(api: api),
+                        Expanded(child: child ?? const SizedBox.shrink()),
+                      ],
                     );
-                  }
-                }
-                return MaterialPageRoute(
-                  builder: (_) => const TeamSearchScreen(),
+                    if (kDebugMode) {
+                      content = Banner(
+                        message: 'debug build',
+                        location: BannerLocation.topStart,
+                        child: content,
+                      );
+                    }
+                    return content;
+                  },
+                  home: const TeamSearchScreen(),
+                  onGenerateRoute: (settings) {
+                    if (settings.name == '/settings') {
+                      return MaterialPageRoute(
+                        builder: (_) => const SettingsScreen(),
+                      );
+                    }
+                    if (settings.name != null &&
+                        settings.name!.startsWith('/team/')) {
+                      final id = int.tryParse(
+                        settings.name!.replaceFirst('/team/', ''),
+                      );
+                      if (id != null) {
+                        return MaterialPageRoute(
+                          builder: (_) => TeamDetailScreen(teamId: id),
+                        );
+                      }
+                    }
+                    return MaterialPageRoute(
+                      builder: (_) => const TeamSearchScreen(),
+                    );
+                  },
                 );
               },
             );

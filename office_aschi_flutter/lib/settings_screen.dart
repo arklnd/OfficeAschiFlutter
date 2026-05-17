@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'background_update.dart';
-import 'main.dart' show themeNotifier, setThemeMode;
+import 'main.dart'
+    show themeNotifier, setThemeMode, dynamicColorNotifier, setDynamicColor;
 import 'update_service.dart';
 import 'version.dart';
 
@@ -104,6 +105,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () => setThemeMode(ThemeMode.dark),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: dynamicColorNotifier,
+                  builder: (context, useDynamic, _) {
+                    return SwitchListTile(
+                      secondary: Icon(
+                        Icons.palette,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      title: const Text('Dynamic color'),
+                      subtitle: const Text(
+                        'Use wallpaper colors (Android 12+)',
+                      ),
+                      value: useDynamic,
+                      onChanged: (v) => setDynamicColor(v),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 24),
