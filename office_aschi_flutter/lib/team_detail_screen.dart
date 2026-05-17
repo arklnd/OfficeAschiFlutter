@@ -1119,7 +1119,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               ),
               color: isBooked
                   ? cs.primaryContainer.withOpacity(isDark ? 0.3 : 1.0)
-                  : cs.surface,
+                  : Colors.green.withOpacity(isDark ? 0.12 : 0.08),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -1181,6 +1181,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                               _openBookDialog(seat.seatId, seat.label),
                           icon: const Icon(Icons.add, size: 16),
                           label: const Text('Book'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.green[700],
+                            side: BorderSide(
+                              color: Colors.green.withOpacity(0.5),
+                            ),
+                          ),
                         ),
                       ),
                   ],
