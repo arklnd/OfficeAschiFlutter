@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'models.dart';
 
-class ApiService {
+class ApiService with WidgetsBindingObserver {
   final String baseUrl;
   final String _serverBase;
 
@@ -18,6 +19,13 @@ class ApiService {
   final StreamController<void> backendRecovered = StreamController.broadcast();
 
   Timer? _healthTimer;
+  int _consecutiveFailures = 0;
+
+  /// Number of consecutive failures before marking backend as down.
+  static const int _failureThreshold = 2;
+
+  /// Whether the app is currently in the background.
+  bool _paused = false;
 
   static ApiService? _instance;
 
@@ -31,7 +39,23 @@ class ApiService {
   ApiService._internal({
     this.baseUrl = 'https://officeaschi.azurewebsites.net/api',
   }) : _serverBase = baseUrl.replaceAll(RegExp(r'/api$'), '') {
+    WidgetsBinding.instance.addObserver(this);
     _pollHealth();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _paused = true;
+      _healthTimer?.cancel();
+    } else if (state == AppLifecycleState.resumed) {
+      _paused = false;
+      _consecutiveFailures = 0;
+      // Immediate health check on resume; keep current state until resolved.
+      _healthTimer?.cancel();
+      _pollHealth();
+    }
   }
 
   void _pollHealth() {
@@ -44,33 +68,44 @@ class ApiService {
   }
 
   Future<void> _checkHealth() async {
+    // Skip health checks while the app is in the background.
+    if (_paused) return;
+
     try {
       final response = await http
           .get(Uri.parse('$_serverBase/health'))
           .timeout(const Duration(seconds: 5));
       noInternet.value = false;
+      _consecutiveFailures = 0;
       final wasDown = backendDown.value;
       backendDown.value = response.statusCode != 200;
       if (wasDown && !backendDown.value) {
         backendRecovered.add(null);
       }
     } on TimeoutException {
-      backendDown.value = true;
-    } catch (e) {
-      // Network errors (SocketException on native, XMLHttpRequest error on web)
-      final msg = e.toString().toLowerCase();
-      if (msg.contains('socket') ||
-          msg.contains('network') ||
-          msg.contains('failed host lookup') ||
-          msg.contains('xmlhttprequest') ||
-          msg.contains('clientexception')) {
-        noInternet.value = true;
+      _consecutiveFailures++;
+      if (_consecutiveFailures >= _failureThreshold) {
+        backendDown.value = true;
       }
-      backendDown.value = true;
+    } catch (e) {
+      _consecutiveFailures++;
+      if (_consecutiveFailures >= _failureThreshold) {
+        // Network errors (SocketException on native, XMLHttpRequest error on web)
+        final msg = e.toString().toLowerCase();
+        if (msg.contains('socket') ||
+            msg.contains('network') ||
+            msg.contains('failed host lookup') ||
+            msg.contains('xmlhttprequest') ||
+            msg.contains('clientexception')) {
+          noInternet.value = true;
+        }
+        backendDown.value = true;
+      }
     }
   }
 
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _healthTimer?.cancel();
     backendDown.dispose();
     noInternet.dispose();
@@ -89,8 +124,9 @@ class ApiService {
   // --- Teams ---
   Future<List<TeamSearchResult>> searchTeams([String? query]) async {
     var url = '$baseUrl/teams';
-    if (query != null && query.isNotEmpty)
+    if (query != null && query.isNotEmpty) {
       url += '?q=${Uri.encodeQueryComponent(query)}';
+    }
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       return (json.decode(response.body) as List)
@@ -102,8 +138,9 @@ class ApiService {
 
   Future<TeamResponse> getTeam(int id) async {
     final response = await http.get(Uri.parse('$baseUrl/teams/$id'));
-    if (response.statusCode == 200)
+    if (response.statusCode == 200) {
       return TeamResponse.fromJson(json.decode(response.body));
+    }
     throw Exception('Team not found');
   }
 
@@ -121,8 +158,9 @@ class ApiService {
         'totpCode': totpCode,
       }),
     );
-    if (response.statusCode == 201)
+    if (response.statusCode == 201) {
       return TeamResponse.fromJson(json.decode(response.body));
+    }
     final err = json.decode(response.body);
     throw Exception(err['error'] ?? 'Failed to create team');
   }
@@ -159,8 +197,9 @@ class ApiService {
       headers: _totpHeaders('manager', teamId, totpCode),
       body: jsonEncode({'label': label}),
     );
-    if (response.statusCode == 201)
+    if (response.statusCode == 201) {
       return SeatResponse.fromJson(json.decode(response.body));
+    }
     final err = json.decode(response.body);
     throw Exception(err['error'] ?? 'Failed to add seat');
   }
@@ -204,8 +243,9 @@ class ApiService {
         'totpCode': totpCode,
       }),
     );
-    if (response.statusCode == 201)
+    if (response.statusCode == 201) {
       return ReporteeResponse.fromJson(json.decode(response.body));
+    }
     final err = json.decode(response.body);
     throw Exception(err['error'] ?? 'Failed to join team');
   }
@@ -219,8 +259,9 @@ class ApiService {
       Uri.parse('$baseUrl/teams/$teamId/reportees/$reporteeId/approve'),
       headers: _totpHeaders('manager', teamId, totpCode),
     );
-    if (response.statusCode == 200)
+    if (response.statusCode == 200) {
       return ReporteeResponse.fromJson(json.decode(response.body));
+    }
     final err = json.decode(response.body);
     throw Exception(err['error'] ?? 'Failed to approve');
   }
@@ -256,8 +297,9 @@ class ApiService {
     final response = await http.get(
       Uri.parse('$baseUrl/bookings/availability/$teamId?date=$date'),
     );
-    if (response.statusCode == 200)
+    if (response.statusCode == 200) {
       return AvailabilityResponse.fromJson(json.decode(response.body));
+    }
     throw Exception('Failed to load availability');
   }
 
@@ -276,8 +318,9 @@ class ApiService {
         'date': date,
       }),
     );
-    if (response.statusCode == 201)
+    if (response.statusCode == 201) {
       return BookingResponse.fromJson(json.decode(response.body));
+    }
     final err = json.decode(response.body);
     throw Exception(err['error'] ?? 'Failed to book seat');
   }
@@ -308,8 +351,9 @@ class ApiService {
         'code': code,
       }),
     );
-    if (response.statusCode == 200)
+    if (response.statusCode == 200) {
       return json.decode(response.body)['valid'] == true;
+    }
     return false;
   }
 }

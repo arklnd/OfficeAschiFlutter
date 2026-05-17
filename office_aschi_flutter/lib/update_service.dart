@@ -200,9 +200,7 @@ class UpdateService {
         }
 
         httpClient = HttpClient();
-        final request = await httpClient.getUrl(
-          Uri.parse(update.downloadUrl),
-        );
+        final request = await httpClient.getUrl(Uri.parse(update.downloadUrl));
 
         // Request only the remaining bytes if we already have a partial file.
         if (alreadyReceived > 0) {
@@ -447,6 +445,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
     with WidgetsBindingObserver {
   double _progress = 0;
   String? _error;
+  bool _retrying = false;
 
   @override
   void initState() {
@@ -473,6 +472,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
   Future<void> _startDownload() async {
     setState(() {
       _error = null;
+      _retrying = false;
     });
     try {
       await UpdateService.downloadAndInstall(
@@ -481,6 +481,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
           if (mounted) {
             setState(() {
               _progress = p;
+              _retrying = false;
             });
           }
         },
