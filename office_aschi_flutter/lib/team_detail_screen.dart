@@ -19,7 +19,7 @@ class TeamDetailScreen extends StatefulWidget {
 }
 
 class _TeamDetailScreenState extends State<TeamDetailScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final ApiService _api = ApiService();
   late TabController _tabController;
 
@@ -35,6 +35,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   final TextEditingController _seatLabelCtrl = TextEditingController();
   int? _currentReporteeId;
   late final StreamSubscription _recoverySub;
+  final ValueNotifier<String?> _clipboardOtp = ValueNotifier(null);
 
   List<ReporteeResponse> get _approvedReportees =>
       _reportees.where((r) => r.isApproved).toList();
@@ -65,10 +66,31 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 2, vsync: this);
     _loadCurrentReporteeId();
     _loadAll();
     _recoverySub = _api.backendRecovered.stream.listen((_) => _loadAll());
+    _checkClipboardForOtp();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkClipboardForOtp();
+    }
+  }
+
+  Future<void> _checkClipboardForOtp() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text != null) {
+      final text = data!.text!.trim();
+      if (RegExp(r'^\d{6}$').hasMatch(text)) {
+        _clipboardOtp.value = text;
+        return;
+      }
+    }
+    _clipboardOtp.value = null;
   }
 
   Future<void> _loadCurrentReporteeId() async {
@@ -81,6 +103,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _clipboardOtp.dispose();
     _recoverySub.cancel();
     _tabController.dispose();
     _seatLabelCtrl.dispose();
@@ -159,6 +183,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     String? reason,
   }) async {
     final codeCtrl = TextEditingController();
+    _checkClipboardForOtp();
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -183,15 +208,37 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                   ),
                 ),
               ),
-            TextField(
-              controller: codeCtrl,
-              decoration: const InputDecoration(
-                labelText: 'TOTP Code',
-                hintText: '6-digit code',
+            AutofillGroup(
+              child: TextField(
+                controller: codeCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'TOTP Code',
+                  hintText: '6-digit code',
+                ),
+                keyboardType: TextInputType.number,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                enableSuggestions: false,
+                autocorrect: false,
+                maxLength: 6,
+                autofocus: true,
               ),
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              autofocus: true,
+            ),
+            ValueListenableBuilder<String?>(
+              valueListenable: _clipboardOtp,
+              builder: (context, code, _) {
+                if (code == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      codeCtrl.text = code;
+                      _clipboardOtp.value = null;
+                    },
+                    icon: const Icon(Icons.content_paste, size: 18),
+                    label: Text('Paste code: $code'),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -232,6 +279,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               availableReportees.first
         : availableReportees.first;
     final codeCtrl = TextEditingController();
+    _checkClipboardForOtp();
 
     showDialog(
       context: context,
@@ -270,11 +318,33 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: codeCtrl,
-                decoration: const InputDecoration(labelText: 'TOTP Code'),
-                keyboardType: TextInputType.number,
-                maxLength: 6,
+              AutofillGroup(
+                child: TextField(
+                  controller: codeCtrl,
+                  decoration: const InputDecoration(labelText: 'TOTP Code'),
+                  keyboardType: TextInputType.number,
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  maxLength: 6,
+                ),
+              ),
+              ValueListenableBuilder<String?>(
+                valueListenable: _clipboardOtp,
+                builder: (context, code, _) {
+                  if (code == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        codeCtrl.text = code;
+                        _clipboardOtp.value = null;
+                      },
+                      icon: const Icon(Icons.content_paste, size: 18),
+                      label: Text('Paste code: $code'),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -737,15 +807,38 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                         ],
                       ),
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: codeCtrl,
-                        decoration: InputDecoration(
-                          labelText: 'Verify TOTP Code',
-                          hintText: '6-digit code',
-                          errorText: verifyError,
+                      AutofillGroup(
+                        child: TextField(
+                          controller: codeCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Verify TOTP Code',
+                            hintText: '6-digit code',
+                            errorText: verifyError,
+                          ),
+                          keyboardType: TextInputType.number,
+                          autofillHints: const [AutofillHints.oneTimeCode],
+                          enableSuggestions: false,
+                          autocorrect: false,
+                          maxLength: 6,
                         ),
-                        keyboardType: TextInputType.number,
-                        maxLength: 6,
+                      ),
+                      ValueListenableBuilder<String?>(
+                        valueListenable: _clipboardOtp,
+                        builder: (context, code, _) {
+                          if (code == null) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                codeCtrl.text = code;
+                                _clipboardOtp.value = null;
+                                setDialogState(() {});
+                              },
+                              icon: const Icon(Icons.content_paste, size: 18),
+                              label: Text('Paste code: $code'),
+                            ),
+                          );
+                        },
                       ),
                     ] else ...[
                       const SizedBox(height: 24),
