@@ -76,6 +76,26 @@ jobs:
           # trim leading whitespace added by heredoc indentation
           sed -i 's/^[[:space:]]*//' key.properties
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          CH="${{ env.BUILD_TYPE }}"
+          # Find the most recent release tag for this channel
+          PREV_TAG=$(git tag --list "v*-${CH}-*" --sort=-version:refname | head -n1)
+          if [ -n "$PREV_TAG" ]; then
+            echo "Previous ${CH} tag: $PREV_TAG"
+            LOG=$(git log --pretty=format:"• %s (%h)" "${PREV_TAG}..HEAD" -- . ':!build')
+          else
+            echo "No previous ${CH} tag found – using last 20 commits"
+            LOG=$(git log --pretty=format:"• %s (%h)" -20 -- . ':!build')
+          fi
+          # Write multi-line output
+          {
+            echo "log<<CHANGELOG_EOF"
+            echo "$LOG"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build APK (${{ env.BUILD_TYPE }})
         working-directory: office_aschi_flutter
         run: |
@@ -109,4 +129,7 @@ jobs:
             Version: `${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}` (code: ${{ steps.vars.outputs.build_number }})
             Branch: `${{ github.ref_name }}`
             Triggered by: `${{ github.actor }}`
+
+            ### Changelog
+            ${{ steps.changelog.outputs.log }}
           files: office_aschi_flutter/build/app/outputs/flutter-apk/office-aschi-flutter-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}.apk

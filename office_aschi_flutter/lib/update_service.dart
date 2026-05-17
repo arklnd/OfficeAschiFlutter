@@ -18,6 +18,7 @@ class AppUpdate {
   final String downloadUrl;
   final int sizeBytes;
   final String releaseName;
+  final String changelog;
 
   const AppUpdate({
     required this.buildNumber,
@@ -26,6 +27,7 @@ class AppUpdate {
     required this.downloadUrl,
     required this.sizeBytes,
     required this.releaseName,
+    required this.changelog,
   });
 }
 
@@ -93,6 +95,7 @@ class UpdateService {
               downloadUrl: apkAsset['browser_download_url'] as String,
               sizeBytes: apkAsset['size'] as int? ?? 0,
               releaseName: release['name'] as String? ?? '',
+              changelog: _extractChangelog(release['body'] as String? ?? ''),
             );
           }
         }
@@ -245,6 +248,22 @@ class UpdateService {
     }
     return tag;
   }
+
+  /// Extracts the changelog section from the release body markdown.
+  static String _extractChangelog(String body) {
+    final idx = body.indexOf('### Changelog');
+    if (idx >= 0) {
+      return body.substring(idx + '### Changelog'.length).trim();
+    }
+    // Fallback: return lines that look like bullet points.
+    final bullets = body
+        .split('\n')
+        .where(
+          (l) => l.trimLeft().startsWith('•') || l.trimLeft().startsWith('- '),
+        )
+        .join('\n');
+    return bullets;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -266,31 +285,48 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
     builder: (ctx) => AlertDialog(
       icon: const Icon(Icons.system_update, size: 36),
       title: const Text('Update Available'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(update.releaseName),
-          const SizedBox(height: 8),
-          Text(
-            'Version: ${update.version}',
-            style: Theme.of(ctx).textTheme.bodySmall,
-          ),
-          Text('Size: $sizeMb MB', style: Theme.of(ctx).textTheme.bodySmall),
-          Text(
-            'Channel: ${UpdateService.channel}',
-            style: Theme.of(ctx).textTheme.bodySmall,
-          ),
-          if (alreadyDownloaded) ...[
-            const SizedBox(height: 8),
-            Text(
-              'APK already downloaded – ready to install.',
-              style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                color: Theme.of(ctx).colorScheme.primary,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 400, maxWidth: 340),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(update.releaseName),
+              const SizedBox(height: 8),
+              Text(
+                'Version: ${update.version}',
+                style: Theme.of(ctx).textTheme.bodySmall,
               ),
-            ),
-          ],
-        ],
+              Text(
+                'Size: $sizeMb MB',
+                style: Theme.of(ctx).textTheme.bodySmall,
+              ),
+              Text(
+                'Channel: ${UpdateService.channel}',
+                style: Theme.of(ctx).textTheme.bodySmall,
+              ),
+              if (alreadyDownloaded) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'APK already downloaded – ready to install.',
+                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(ctx).colorScheme.primary,
+                  ),
+                ),
+              ],
+              if (update.changelog.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('What\'s New', style: Theme.of(ctx).textTheme.titleSmall),
+                const Divider(),
+                Text(
+                  update.changelog,
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
       actions: [
         TextButton(
@@ -394,21 +430,44 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
 
     return AlertDialog(
       title: const Text('Downloading Update'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          LinearProgressIndicator(
-            value: _progress > 0 ? _progress : null,
-            borderRadius: BorderRadius.circular(4),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 400, maxWidth: 340),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LinearProgressIndicator(
+                value: _progress > 0 ? _progress : null,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              const SizedBox(height: 12),
+              Text('$downloadedMb / $totalMb MB'),
+              const SizedBox(height: 4),
+              Text(
+                '${(_progress * 100).toStringAsFixed(0)}%',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (widget.update.changelog.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'What\'s New',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                const Divider(),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    widget.update.changelog,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 12),
-          Text('$downloadedMb / $totalMb MB'),
-          const SizedBox(height: 4),
-          Text(
-            '${(_progress * 100).toStringAsFixed(0)}%',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+        ),
       ),
     );
   }
