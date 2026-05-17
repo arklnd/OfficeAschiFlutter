@@ -220,7 +220,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         title: Text(title),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (entityName != null && reason != null)
               Padding(
