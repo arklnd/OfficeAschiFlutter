@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'api_service.dart';
 import 'models.dart';
 import 'totp_service.dart';
@@ -194,6 +195,27 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                           },
                           icon: const Icon(Icons.copy, size: 16),
                           label: const Text('Copy Secret'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () async {
+                            final uri = Uri.parse(otpUri);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            } else {
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('No authenticator app found'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.open_in_new, size: 16),
+                          label: const Text('Open with Authenticator'),
                         ),
                       ],
                     ),

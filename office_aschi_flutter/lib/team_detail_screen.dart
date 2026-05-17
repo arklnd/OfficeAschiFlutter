@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'api_service.dart';
 import 'models.dart';
 import 'totp_service.dart';
@@ -243,7 +244,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               Text('Date: ${DateFormat('EEE, MMM d').format(_selectedDate)}'),
               const SizedBox(height: 12),
               DropdownButtonFormField<ReporteeResponse>(
-                value: selected,
+                initialValue: selected,
                 decoration: const InputDecoration(labelText: 'Select Person'),
                 items: availableReportees
                     .map(
@@ -294,7 +295,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                   );
                   if (ctx.mounted) Navigator.pop(ctx);
                   _loadAvailability();
-                  if (mounted)
+                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -302,11 +303,13 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                         ),
                       ),
                     );
+                  }
                 } catch (e) {
-                  if (ctx.mounted)
+                  if (ctx.mounted) {
                     ScaffoldMessenger.of(
                       ctx,
                     ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
                 }
               },
               child: const Text('Book'),
@@ -351,15 +354,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     try {
       await _api.cancelBooking(booking.id, booking.reporteeId, code);
       _loadAvailability();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Booking cancelled')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -376,15 +381,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.addSeat(widget.teamId, label, code);
       _seatLabelCtrl.clear();
       _loadAll();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Seat "$label" added')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -398,15 +405,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     try {
       await _api.deleteSeat(widget.teamId, seat.id, code);
       _loadAll();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Seat "${seat.label}" deleted')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -420,15 +429,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     try {
       await _api.approveReportee(widget.teamId, reporteeId, code);
       _loadAll();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Member approved')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -464,15 +475,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     try {
       await _api.denyReportee(widget.teamId, r.id, code);
       _loadAll();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Denied ${r.friendlyName}')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -508,15 +521,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     try {
       await _api.removeReportee(widget.teamId, r.id, code);
       _loadAll();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Removed ${r.friendlyName}')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -560,10 +575,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -686,6 +702,29 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                             icon: const Icon(Icons.copy, size: 16),
                             label: const Text('Copy Secret'),
                           ),
+                          TextButton.icon(
+                            onPressed: () async {
+                              final uri = Uri.parse(otpUri);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } else {
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'No authenticator app found',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.open_in_new, size: 16),
+                            label: const Text('Open with Authenticator'),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -756,7 +795,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           _currentReporteeId = r.id;
                           if (ctx.mounted) Navigator.pop(ctx);
                           _loadAll();
-                          if (mounted)
+                          if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -764,6 +803,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                                 ),
                               ),
                             );
+                          }
                         } catch (e) {
                           setDialogState(() {
                             verifyError = e.toString().replaceFirst(

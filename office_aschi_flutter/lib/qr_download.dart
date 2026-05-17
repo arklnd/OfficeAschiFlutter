@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'package:flutter/foundation.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 // Web-only imports via conditional
