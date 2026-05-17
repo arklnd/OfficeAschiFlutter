@@ -5,8 +5,31 @@ import 'main.dart' show themeNotifier, setThemeMode;
 import 'update_service.dart';
 import 'version.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _autoUpdate = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAutoUpdatePref();
+  }
+
+  Future<void> _loadAutoUpdatePref() async {
+    final enabled = await UpdateService.isAutoUpdateEnabled();
+    if (mounted) setState(() => _autoUpdate = enabled);
+  }
+
+  Future<void> _toggleAutoUpdate(bool value) async {
+    setState(() => _autoUpdate = value);
+    await UpdateService.setAutoUpdateEnabled(value);
+  }
 
   static Future<void> _checkForUpdate(BuildContext context) async {
     showDialog(
@@ -93,18 +116,35 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.system_update,
-                      color: cs.onSurfaceVariant,
-                    ),
-                    title: const Text('Check for updates'),
-                    subtitle: Text('Channel: ${UpdateService.channel}'),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      color: cs.onSurfaceVariant,
-                    ),
-                    onTap: () => _checkForUpdate(context),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        secondary: Icon(
+                          Icons.update,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        title: const Text('Automatic update check'),
+                        subtitle: const Text(
+                          'Check for updates when the app opens',
+                        ),
+                        value: _autoUpdate,
+                        onChanged: _toggleAutoUpdate,
+                      ),
+                      const Divider(height: 1, indent: 56),
+                      ListTile(
+                        leading: Icon(
+                          Icons.system_update,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        title: const Text('Check for updates'),
+                        subtitle: Text('Channel: ${UpdateService.channel}'),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        onTap: () => _checkForUpdate(context),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),

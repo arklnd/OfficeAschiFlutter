@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'version.dart';
 
@@ -38,9 +39,22 @@ class AppUpdate {
 class UpdateService {
   static const _owner = 'arklnd';
   static const _repo = 'OfficeAschiFlutter';
+  static const _autoUpdateKey = 'autoUpdateCheck';
 
   /// 'debug' when running a debug build, 'release' otherwise.
   static String get channel => kDebugMode ? 'debug' : 'release';
+
+  /// Whether automatic update checks on app start are enabled.
+  static Future<bool> isAutoUpdateEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoUpdateKey) ?? true;
+  }
+
+  /// Persist the auto-update-check preference.
+  static Future<void> setAutoUpdateEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoUpdateKey, enabled);
+  }
 
   /// Build number extracted from [appVersion] ("23.0.0-a35ced4" → 23).
   static int? get currentBuildNumber {
@@ -353,64 +367,117 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
 
   final shouldProceed = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      icon: const Icon(Icons.system_update, size: 36),
-      title: const Text('Update Available'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 400, maxWidth: 340),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(update.releaseName),
-              const SizedBox(height: 8),
-              Text(
-                'Version: ${update.version}',
-                style: Theme.of(ctx).textTheme.bodySmall,
-              ),
-              Text(
-                'Size: $sizeMb MB',
-                style: Theme.of(ctx).textTheme.bodySmall,
-              ),
-              Text(
-                'Channel: ${UpdateService.channel}',
-                style: Theme.of(ctx).textTheme.bodySmall,
-              ),
-              if (alreadyDownloaded) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'APK already downloaded – ready to install.',
-                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(ctx).colorScheme.primary,
+    builder: (ctx) {
+      bool dontShowAgain = false;
+      return StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          icon: const Icon(Icons.system_update, size: 36),
+          title: const Text('Update Available'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420, maxWidth: 340),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(update.releaseName),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Version: ${update.version}',
+                    style: Theme.of(ctx).textTheme.bodySmall,
                   ),
-                ),
-              ],
-              if (update.changelog.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text('What\'s New', style: Theme.of(ctx).textTheme.titleSmall),
-                const Divider(),
-                Text(
-                  update.changelog,
-                  style: Theme.of(ctx).textTheme.bodySmall,
-                ),
-              ],
-            ],
+                  Text(
+                    'Size: $sizeMb MB',
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                  Text(
+                    'Channel: ${UpdateService.channel}',
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                  if (alreadyDownloaded) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'APK already downloaded – ready to install.',
+                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(ctx).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                  if (update.changelog.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'What\'s New',
+                      style: Theme.of(ctx).textTheme.titleSmall,
+                    ),
+                    const Divider(),
+                    Text(
+                      update.changelog,
+                      style: Theme.of(ctx).textTheme.bodySmall,
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: Checkbox(
+                          value: dontShowAgain,
+                          onChanged: (v) =>
+                              setDialogState(() => dontShowAgain = v ?? false),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setDialogState(
+                            () => dontShowAgain = !dontShowAgain,
+                          ),
+                          child: Text(
+                            'Don\'t remind me again',
+                            style: Theme.of(ctx).textTheme.bodySmall,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (dontShowAgain)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 32, top: 2),
+                      child: Text(
+                        'You can re-enable this in Settings → Updates.',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(ctx).colorScheme.outline,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (dontShowAgain) {
+                  UpdateService.setAutoUpdateEnabled(false);
+                }
+                Navigator.pop(ctx, false);
+              },
+              child: const Text('Later'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(ctx, true),
+              icon: Icon(
+                alreadyDownloaded ? Icons.install_mobile : Icons.download,
+              ),
+              label:
+                  Text(alreadyDownloaded ? 'Install' : 'Download & Install'),
+            ),
+          ],
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Later'),
-        ),
-        FilledButton.icon(
-          onPressed: () => Navigator.pop(ctx, true),
-          icon: Icon(alreadyDownloaded ? Icons.install_mobile : Icons.download),
-          label: Text(alreadyDownloaded ? 'Install' : 'Download & Install'),
-        ),
-      ],
-    ),
+      );
+    },
   );
 
   if (shouldProceed != true || !context.mounted) return;
@@ -445,7 +512,6 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
     with WidgetsBindingObserver {
   double _progress = 0;
   String? _error;
-  bool _retrying = false;
 
   @override
   void initState() {
@@ -472,7 +538,6 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
   Future<void> _startDownload() async {
     setState(() {
       _error = null;
-      _retrying = false;
     });
     try {
       await UpdateService.downloadAndInstall(
@@ -481,7 +546,6 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
           if (mounted) {
             setState(() {
               _progress = p;
-              _retrying = false;
             });
           }
         },

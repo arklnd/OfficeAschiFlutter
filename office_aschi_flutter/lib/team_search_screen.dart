@@ -41,6 +41,9 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
     if (kIsWeb) return;
     if (appVersion == 'APP_VERSION_PLACEHOLDER') return;
 
+    // Respect user preference.
+    if (!await UpdateService.isAutoUpdateEnabled()) return;
+
     // Let the UI settle before checking.
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
