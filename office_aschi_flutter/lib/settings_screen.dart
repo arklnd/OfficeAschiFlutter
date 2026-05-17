@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'main.dart' show themeNotifier, setThemeMode;
 import 'update_service.dart';
 import 'version.dart';
@@ -137,6 +138,75 @@ class SettingsScreen extends StatelessWidget {
                       leading: Icon(Icons.code, color: cs.onSurfaceVariant),
                       title: const Text('Built with Flutter'),
                       subtitle: const Text('Cross-platform seat booking'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              // GitHub section
+              Text(
+                'GitHub',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: cs.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(Icons.source, color: cs.onSurfaceVariant),
+                      title: const Text('Source Code'),
+                      subtitle: const Text('arklnd/OfficeAschiFlutter'),
+                      trailing: Icon(
+                        Icons.open_in_new,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      onTap: () => launchUrl(
+                        Uri.parse(
+                          'https://github.com/arklnd/OfficeAschiFlutter',
+                        ),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                    ),
+                    const Divider(height: 1, indent: 56),
+                    ListTile(
+                      leading: Icon(
+                        Icons.bug_report,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      title: const Text('Report an Issue'),
+                      subtitle: const Text('Bugs & feature requests'),
+                      trailing: Icon(
+                        Icons.open_in_new,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      onTap: () => launchUrl(
+                        Uri.parse(
+                          'https://github.com/arklnd/OfficeAschiFlutter/issues',
+                        ),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                    ),
+                    const Divider(height: 1, indent: 56),
+                    ListTile(
+                      leading: Icon(
+                        Icons.new_releases_outlined,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      title: const Text('Releases'),
+                      subtitle: const Text('Download latest versions'),
+                      trailing: Icon(
+                        Icons.open_in_new,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      onTap: () => launchUrl(
+                        Uri.parse(
+                          'https://github.com/arklnd/OfficeAschiFlutter/releases',
+                        ),
+                        mode: LaunchMode.externalApplication,
+                      ),
                     ),
                   ],
                 ),
