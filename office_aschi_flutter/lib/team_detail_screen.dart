@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -945,72 +944,44 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               icon: Icon(Icons.chevron_left, size: 32, color: cs.onSurface),
             ),
             Expanded(
-              child: RawGestureDetector(
-                gestures: <Type, GestureRecognizerFactory>{
-                  HorizontalDragGestureRecognizer:
-                      GestureRecognizerFactoryWithHandlers<
-                        HorizontalDragGestureRecognizer
-                      >(
-                        () =>
-                            HorizontalDragGestureRecognizer()
-                              ..onEnd = (details) {
-                                if ((details.primaryVelocity ?? 0) < 0) {
-                                  _goToNextDay();
-                                } else if ((details.primaryVelocity ?? 0) > 0) {
-                                  _goToPreviousDay();
-                                }
-                              },
-                        (instance) {
-                          instance.onEnd = (details) {
-                            if ((details.primaryVelocity ?? 0) < 0) {
-                              _goToNextDay();
-                            } else if ((details.primaryVelocity ?? 0) > 0) {
-                              _goToPreviousDay();
-                            }
-                          };
-                        },
-                      ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime(2030),
+                  );
+                  if (picked != null) {
+                    setState(() => _selectedDate = picked);
+                    _loadAvailability();
+                  }
                 },
-                behavior: HitTestBehavior.opaque,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2024),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      setState(() => _selectedDate = picked);
-                      _loadAvailability();
-                    }
-                  },
-                  child: Column(
-                    children: [
-                      Text(
-                        '${_selectedDate.day}',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
+                child: Column(
+                  children: [
+                    Text(
+                      '${_selectedDate.day}',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
                       ),
-                      Text(
-                        '${DateFormat('MMMM').format(_selectedDate)} ${_selectedDate.year}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: cs.onSurfaceVariant,
-                        ),
+                    ),
+                    Text(
+                      '${DateFormat('MMMM').format(_selectedDate)} ${_selectedDate.year}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: cs.onSurfaceVariant,
                       ),
-                      Text(
-                        DateFormat('EEEE').format(_selectedDate),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: cs.onSurfaceVariant,
-                        ),
+                    ),
+                    Text(
+                      DateFormat('EEEE').format(_selectedDate),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: cs.onSurfaceVariant,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
