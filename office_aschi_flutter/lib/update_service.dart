@@ -154,10 +154,16 @@ class UpdateService {
 
   /// Downloads the APK to the Downloads folder (or installs an existing one)
   /// then launches the system package installer.
+  ///
+  /// The download is resilient to interruptions (app backgrounded, screen
+  /// locked, transient network errors). It writes to a `.part` temp file and
+  /// uses HTTP `Range` headers to resume from the last received byte. Up to
+  /// [maxRetries] automatic retries are attempted with exponential back-off.
   static Future<void> downloadAndInstall(
     AppUpdate update, {
     ValueChanged<double>? onProgress,
     ValueChanged<List<String>>? onCleaned,
+    int maxRetries = 5,
   }) async {
     // If the APK was already downloaded, skip straight to install.
     final existing = await getExistingApk(update);
@@ -170,38 +176,105 @@ class UpdateService {
     final dir = await _downloadDir();
     final fileName = apkFileName(update);
     final file = File('${dir.path}/$fileName');
+    final partFile = File('${dir.path}/$fileName.part');
 
     // Remove stale update APKs from previous versions.
     final cleaned = await _cleanOldApks(dir, fileName);
     if (cleaned.isNotEmpty) onCleaned?.call(cleaned);
 
-    final httpClient = HttpClient();
-    try {
-      final request = await httpClient.getUrl(Uri.parse(update.downloadUrl));
-      final response = await request.close();
+    final totalBytes = update.sizeBytes;
+    int attempt = 0;
 
-      if (response.statusCode != 200) {
-        throw Exception('Download failed: HTTP ${response.statusCode}');
-      }
-
-      final totalBytes = response.contentLength > 0
-          ? response.contentLength
-          : update.sizeBytes;
-      final sink = file.openWrite();
-      int received = 0;
-
-      await for (final chunk in response) {
-        sink.add(chunk);
-        received += chunk.length;
-        if (totalBytes > 0) {
-          onProgress?.call(received / totalBytes);
+    while (true) {
+      HttpClient? httpClient;
+      try {
+        // Determine how many bytes we already have from a previous attempt.
+        int alreadyReceived = 0;
+        if (await partFile.exists()) {
+          alreadyReceived = await partFile.length();
+          // If we somehow have more than expected, start fresh.
+          if (totalBytes > 0 && alreadyReceived >= totalBytes) {
+            await partFile.delete();
+            alreadyReceived = 0;
+          }
         }
-      }
-      await sink.close();
 
-      await installApk(file);
-    } finally {
-      httpClient.close();
+        httpClient = HttpClient();
+        final request = await httpClient.getUrl(
+          Uri.parse(update.downloadUrl),
+        );
+
+        // Request only the remaining bytes if we already have a partial file.
+        if (alreadyReceived > 0) {
+          request.headers.set('Range', 'bytes=$alreadyReceived-');
+        }
+
+        final response = await request.close().timeout(
+          const Duration(seconds: 30),
+        );
+
+        // 200 = full content, 206 = partial content (resume accepted).
+        if (response.statusCode != 200 && response.statusCode != 206) {
+          throw Exception('Download failed: HTTP ${response.statusCode}');
+        }
+
+        // If server returned 200 (ignoring Range), start from scratch.
+        if (response.statusCode == 200 && alreadyReceived > 0) {
+          await partFile.delete();
+          alreadyReceived = 0;
+        }
+
+        final sink = partFile.openWrite(
+          mode: alreadyReceived > 0 ? FileMode.append : FileMode.write,
+        );
+        int received = alreadyReceived;
+
+        try {
+          await for (final chunk in response) {
+            sink.add(chunk);
+            received += chunk.length;
+            if (totalBytes > 0) {
+              onProgress?.call(received / totalBytes);
+            }
+          }
+        } finally {
+          await sink.flush();
+          await sink.close();
+        }
+
+        // Verify completeness.
+        if (totalBytes > 0 && received < totalBytes) {
+          throw Exception(
+            'Incomplete download ($received / $totalBytes bytes)',
+          );
+        }
+
+        // Download complete – rename .part → final file.
+        await partFile.rename(file.path);
+        onProgress?.call(1.0);
+        await installApk(file);
+        return; // success – exit loop
+      } catch (e) {
+        attempt++;
+        httpClient?.close(force: true);
+
+        if (attempt >= maxRetries) {
+          // Clean up the partial file on final failure.
+          try {
+            if (await partFile.exists()) await partFile.delete();
+          } catch (_) {}
+          rethrow;
+        }
+
+        // Exponential back-off: 2s, 4s, 8s, 16s, 32s …
+        final delay = Duration(seconds: 1 << attempt);
+        debugPrint(
+          'Download interrupted (attempt $attempt/$maxRetries), '
+          'retrying in ${delay.inSeconds}s: $e',
+        );
+        await Future.delayed(delay);
+        // Loop continues → resume from partial file.
+      }
     }
   }
 
@@ -370,22 +443,46 @@ class _DownloadProgressDialog extends StatefulWidget {
       _DownloadProgressDialogState();
 }
 
-class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
+class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
+    with WidgetsBindingObserver {
   double _progress = 0;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _startDownload();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // No-op – the download runs in an isolate-like Future that survives
+    // paused/resumed lifecycle. We just keep the UI updated when resumed.
+    if (state == AppLifecycleState.resumed && mounted) {
+      setState(() {}); // refresh UI in case progress changed while paused
+    }
+  }
+
   Future<void> _startDownload() async {
+    setState(() {
+      _error = null;
+    });
     try {
       await UpdateService.downloadAndInstall(
         widget.update,
         onProgress: (p) {
-          if (mounted) setState(() => _progress = p);
+          if (mounted) {
+            setState(() {
+              _progress = p;
+            });
+          }
         },
         onCleaned: (versions) {
           if (mounted) {
@@ -417,6 +514,11 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
+          ),
+          FilledButton.icon(
+            onPressed: _startDownload,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
           ),
         ],
       );
