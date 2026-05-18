@@ -241,7 +241,7 @@ class MyApp extends StatelessWidget {
       ),
       tabBarTheme: TabBarThemeData(
         indicatorSize: TabBarIndicatorSize.label,
-        dividerColor: colorScheme.surfaceContainerHighest,
+        dividerColor: colorScheme.outlineVariant,
         labelColor: colorScheme.primary,
         unselectedLabelColor: colorScheme.onSurfaceVariant,
       ),
