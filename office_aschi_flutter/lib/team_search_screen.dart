@@ -20,20 +20,52 @@ class TeamSearchScreen extends StatefulWidget {
   State<TeamSearchScreen> createState() => _TeamSearchScreenState();
 }
 
-class _TeamSearchScreenState extends State<TeamSearchScreen> {
+class _TeamSearchScreenState extends State<TeamSearchScreen>
+    with WidgetsBindingObserver {
   final ApiService _api = ApiService();
   final TextEditingController _searchController = TextEditingController();
   List<TeamSearchResult> _teams = [];
   bool _loading = true;
   String? _error;
   late final StreamSubscription _recoverySub;
+  final ValueNotifier<String?> _clipboardOtp = ValueNotifier(null);
+  String? _lastPastedOtp;
+  bool _awaitingAuthenticatorReturn = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadTeams();
     _recoverySub = _api.backendRecovered.stream.listen((_) => _loadTeams());
     _checkForAppUpdate();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awaitingAuthenticatorReturn) {
+      _awaitingAuthenticatorReturn = false;
+      _checkClipboardForOtp();
+    }
+  }
+
+  Future<void> _checkClipboardForOtp() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text != null) {
+      final text = data!.text!.trim();
+      if (RegExp(r'^\d{6}$').hasMatch(text) && text != _lastPastedOtp) {
+        _clipboardOtp.value = text;
+        return;
+      }
+    }
+    _clipboardOtp.value = null;
+  }
+
+  void _pasteClipboardCode(TextEditingController ctrl, String code) {
+    ctrl.text = code;
+    _lastPastedOtp = code;
+    _awaitingAuthenticatorReturn = false;
+    _clipboardOtp.value = null;
   }
 
   Future<void> _checkForAppUpdate() async {
@@ -56,6 +88,8 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _clipboardOtp.dispose();
     _recoverySub.cancel();
     _searchController.dispose();
     super.dispose();
@@ -82,7 +116,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
     }
   }
 
-  void _openCreateTeamDialog() {
+  void _openCreateTeamDialog() async {
     final nameCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
     String secret = TotpService.generateSecret();
@@ -90,7 +124,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
     String? nameError;
     bool creating = false;
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
@@ -202,6 +236,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () async {
+                            _awaitingAuthenticatorReturn = true;
                             final uri = Uri.parse(otpUri);
                             try {
                               final launched = await launchUrl(
@@ -209,6 +244,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                                 mode: LaunchMode.externalApplication,
                               );
                               if (!launched && ctx.mounted) {
+                                _awaitingAuthenticatorReturn = false;
                                 ScaffoldMessenger.of(ctx).showSnackBar(
                                   const SnackBar(
                                     content: Text('No authenticator app found'),
@@ -216,6 +252,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                                 );
                               }
                             } catch (_) {
+                              _awaitingAuthenticatorReturn = false;
                               if (ctx.mounted) {
                                 ScaffoldMessenger.of(ctx).showSnackBar(
                                   const SnackBar(
@@ -240,6 +277,23 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                       ),
                       keyboardType: TextInputType.number,
                       maxLength: 6,
+                    ),
+                    ValueListenableBuilder<String?>(
+                      valueListenable: _clipboardOtp,
+                      builder: (context, code, _) {
+                        if (code == null) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              _pasteClipboardCode(codeCtrl, code);
+                              setDialogState(() {});
+                            },
+                            icon: const Icon(Icons.content_paste, size: 18),
+                            label: Text('Paste code: $code'),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -309,6 +363,8 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
         },
       ),
     );
+    _awaitingAuthenticatorReturn = false;
+    _clipboardOtp.value = null;
   }
 
   @override

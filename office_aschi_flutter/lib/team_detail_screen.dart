@@ -817,6 +817,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           ),
                           ElevatedButton.icon(
                             onPressed: () async {
+                              _awaitingAuthenticatorReturn = true;
                               final uri = Uri.parse(otpUri);
                               try {
                                 final launched = await launchUrl(
@@ -824,6 +825,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                                   mode: LaunchMode.externalApplication,
                                 );
                                 if (!launched && ctx.mounted) {
+                                  _awaitingAuthenticatorReturn = false;
                                   ScaffoldMessenger.of(ctx).showSnackBar(
                                     const SnackBar(
                                       content: Text(
@@ -833,6 +835,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                                   );
                                 }
                               } catch (_) {
+                                _awaitingAuthenticatorReturn = false;
                                 if (ctx.mounted) {
                                   ScaffoldMessenger.of(ctx).showSnackBar(
                                     const SnackBar(
