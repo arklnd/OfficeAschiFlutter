@@ -1417,7 +1417,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
-        color: cs.surfaceContainerLow,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1475,7 +1474,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
-        color: cs.surfaceContainerLow,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1526,7 +1524,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
-        color: cs.surfaceContainerLow,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
