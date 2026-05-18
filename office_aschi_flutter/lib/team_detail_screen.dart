@@ -1269,7 +1269,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                 ? const Color(0xFFD4F5DC)
                 : const Color(0xFF0D4A22);
             return Card(
-              elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1361,11 +1360,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     final waitlist = _availability?.waitlist ?? [];
     final cs = Theme.of(context).colorScheme;
     return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: cs.outlineVariant),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
