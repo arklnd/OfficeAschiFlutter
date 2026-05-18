@@ -1438,7 +1438,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                       .map(
                         (s) => InputChip(
                           label: Text(s.label),
+                          labelStyle: TextStyle(color: cs.onSurface),
                           onDeleted: () => _deleteSeat(s),
+                          deleteIconColor: cs.onSurfaceVariant,
+                          side: BorderSide(color: cs.outline),
                         ),
                       )
                       .toList(),
