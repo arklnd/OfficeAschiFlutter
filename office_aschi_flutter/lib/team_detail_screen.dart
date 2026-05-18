@@ -218,7 +218,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     String? reason,
   }) async {
     final codeCtrl = TextEditingController();
-    return showDialog<String>(
+    final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
@@ -291,9 +291,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         ],
       ),
     );
+    _awaitingAuthenticatorReturn = false;
+    _clipboardOtp.value = null;
+    return result;
   }
 
-  void _openBookDialog(int seatId, String seatLabel) {
+  void _openBookDialog(int seatId, String seatLabel) async {
     final bookedIds = (_availability?.bookings ?? [])
         .map((b) => b.reporteeId)
         .toSet();
@@ -317,7 +320,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         : availableReportees.first;
     final codeCtrl = TextEditingController();
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
@@ -427,6 +430,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         ),
       ),
     );
+    _awaitingAuthenticatorReturn = false;
+    _clipboardOtp.value = null;
   }
 
   void _cancelBooking(BookingResponse booking) async {
@@ -692,14 +697,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     }
   }
 
-  void _openJoinDialog() {
+  void _openJoinDialog() async {
     final nameCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
     String secret = '';
     String? verifyError;
     bool joining = false;
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
@@ -960,6 +965,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         },
       ),
     );
+    _awaitingAuthenticatorReturn = false;
+    _clipboardOtp.value = null;
   }
 
   void _copyTeamUrl() {
