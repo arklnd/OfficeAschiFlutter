@@ -130,7 +130,7 @@ class MyApp extends StatelessWidget {
       cardTheme: CardThemeData(
         elevation: 2,
         clipBehavior: Clip.antiAlias,
-        color: colorScheme.surfaceContainerLow,
+        color: colorScheme.surfaceContainerHigh,
         shadowColor: colorScheme.shadow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
