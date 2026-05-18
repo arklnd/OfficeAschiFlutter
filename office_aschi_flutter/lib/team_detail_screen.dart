@@ -768,7 +768,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Theme.of(ctx).colorScheme.secondaryContainer,
+                          color: Theme.of(ctx).colorScheme.inverseSurface,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: SelectableText(
@@ -777,9 +777,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                             fontFamily: 'monospace',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Theme.of(
-                              ctx,
-                            ).colorScheme.onSecondaryContainer,
+                            color: Theme.of(ctx).colorScheme.onInverseSurface,
                           ),
                         ),
                       ),
