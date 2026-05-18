@@ -479,11 +479,11 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                               vertical: 8,
                             ),
                             leading: CircleAvatar(
-                              backgroundColor: cs.primaryContainer,
+                              backgroundColor: cs.primary,
                               child: Text(
                                 team.name[0].toUpperCase(),
                                 style: TextStyle(
-                                  color: cs.onPrimaryContainer,
+                                  color: cs.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),

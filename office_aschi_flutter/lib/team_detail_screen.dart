@@ -1489,10 +1489,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             ..._pendingReportees.map(
               (r) => ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: cs.secondaryContainer,
+                  backgroundColor: cs.secondary,
                   child: Text(
                     r.friendlyName[0].toUpperCase(),
-                    style: TextStyle(color: cs.onSecondaryContainer),
+                    style: TextStyle(color: cs.onSecondary),
                   ),
                 ),
                 title: Text(r.friendlyName),

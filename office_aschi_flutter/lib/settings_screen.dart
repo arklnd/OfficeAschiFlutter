@@ -337,10 +337,10 @@ class _IconBox extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer,
+        color: colorScheme.primary,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 22),
+      child: Icon(icon, color: colorScheme.onPrimary, size: 22),
     );
   }
 }
