@@ -128,9 +128,10 @@ class MyApp extends StatelessWidget {
       colorScheme: colorScheme,
       useMaterial3: true,
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 2,
         clipBehavior: Clip.antiAlias,
         color: colorScheme.surfaceContainerLow,
+        shadowColor: colorScheme.shadow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       appBarTheme: AppBarTheme(
