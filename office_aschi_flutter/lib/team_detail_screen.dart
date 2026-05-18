@@ -284,7 +284,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(ctx, codeCtrl.text),
             child: const Text('Confirm'),
           ),
@@ -392,7 +392,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
+            FilledButton(
               onPressed: () async {
                 if (selected == null || codeCtrl.text.isEmpty) return;
                 try {
@@ -445,8 +445,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
             ),
             child: const Text('Yes, cancel'),
           ),
@@ -566,8 +566,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
             ),
             child: const Text('Deny'),
           ),
@@ -611,8 +611,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Remove'),
@@ -659,8 +659,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
@@ -742,20 +742,22 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+                          color: Theme.of(
+                            ctx,
+                          ).colorScheme.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: QrImageView(
                           data: otpUri,
                           version: QrVersions.auto,
                           size: 200,
-                          eyeStyle: const QrEyeStyle(
+                          eyeStyle: QrEyeStyle(
                             eyeShape: QrEyeShape.square,
-                            color: Color(0xFF1a237e),
+                            color: Theme.of(ctx).colorScheme.onSurface,
                           ),
-                          dataModuleStyle: const QrDataModuleStyle(
+                          dataModuleStyle: QrDataModuleStyle(
                             dataModuleShape: QrDataModuleShape.square,
-                            color: Color(0xFF1a237e),
+                            color: Theme.of(ctx).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -766,18 +768,18 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
+                          color: Theme.of(ctx).colorScheme.secondaryContainer,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.blue.withOpacity(0.3),
-                          ),
                         ),
                         child: SelectableText(
                           secret,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
+                            color: Theme.of(
+                              ctx,
+                            ).colorScheme.onSecondaryContainer,
                           ),
                         ),
                       ),
@@ -897,7 +899,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text('Cancel'),
               ),
-              ElevatedButton(
+              FilledButton(
                 onPressed: joining
                     ? null
                     : () async {
@@ -987,7 +989,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               const SizedBox(height: 16),
               const Text('Team not found', style: TextStyle(fontSize: 20)),
               const SizedBox(height: 8),
-              ElevatedButton.icon(
+              FilledButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back to Teams'),
@@ -1165,7 +1167,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: cs.errorContainer.withOpacity(0.3),
+              color: cs.errorContainer,
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -1173,7 +1175,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                   ? Icons.wifi_off_rounded
                   : Icons.cloud_off_rounded,
               size: 36,
-              color: cs.error,
+              color: cs.onErrorContainer,
             ),
           ),
           const SizedBox(height: 12),
@@ -1237,20 +1239,22 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             final isBooked = seat.status == 'booked';
             final cs = Theme.of(context).colorScheme;
             final isDark = Theme.of(context).brightness == Brightness.dark;
+            // M3-compliant green tonal palette for available seats
+            final greenContainer = isDark
+                ? const Color(0xFF1B3A2A) // dark green container
+                : const Color(0xFFD4F5DC); // light green container
+            final onGreenContainer = isDark
+                ? const Color(0xFFA8DAB5) // dark on-green-container
+                : const Color(0xFF1B6B35); // light on-green-container
+            final greenOutline = isDark
+                ? const Color(0xFF4E9A6B)
+                : const Color(0xFF4CAF6A);
             return Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: isBooked
-                      ? cs.primary.withOpacity(0.4)
-                      : Colors.green.withOpacity(isDark ? 0.4 : 0.3),
-                  width: 1.5,
-                ),
               ),
-              color: isBooked
-                  ? cs.primaryContainer.withOpacity(isDark ? 0.3 : 1.0)
-                  : Colors.green.withOpacity(isDark ? 0.12 : 0.08),
+              color: isBooked ? cs.primaryContainer : greenContainer,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -1313,10 +1317,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           icon: const Icon(Icons.add, size: 16),
                           label: const Text('Book'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.green[700],
-                            side: BorderSide(
-                              color: Colors.green.withOpacity(0.5),
-                            ),
+                            foregroundColor: onGreenContainer,
+                            side: BorderSide(color: greenOutline),
                           ),
                         ),
                       ),
@@ -1332,11 +1334,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
 
   Widget _buildWaitlist() {
     final waitlist = _availability?.waitlist ?? [];
+    final cs = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.orange.withOpacity(0.4)),
+        side: BorderSide(color: cs.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1354,10 +1357,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: cs.secondaryContainer,
                   child: Text(
                     '${i + 1}',
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: cs.onSecondaryContainer),
                   ),
                 ),
                 title: Text(w.reporteeName),
@@ -1465,10 +1468,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             ..._pendingReportees.map(
               (r) => ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: cs.secondaryContainer,
                   child: Text(
                     r.friendlyName[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: cs.onSecondaryContainer),
                   ),
                 ),
                 title: Text(r.friendlyName),
@@ -1571,14 +1574,20 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
-        color: cs.errorContainer.withOpacity(0.3),
+        color: cs.errorContainer,
         child: ListTile(
-          leading: Icon(Icons.delete_forever, color: cs.error),
-          title: Text('Delete this team', style: TextStyle(color: cs.error)),
-          subtitle: const Text('Removes all seats, members, and bookings.'),
+          leading: Icon(Icons.delete_forever, color: cs.onErrorContainer),
+          title: Text(
+            'Delete this team',
+            style: TextStyle(color: cs.onErrorContainer),
+          ),
+          subtitle: Text(
+            'Removes all seats, members, and bookings.',
+            style: TextStyle(color: cs.onErrorContainer.withValues(alpha: 0.8)),
+          ),
           trailing: TextButton(
             onPressed: _deleteTeam,
-            style: TextButton.styleFrom(foregroundColor: cs.error),
+            style: TextButton.styleFrom(foregroundColor: cs.onErrorContainer),
             child: const Text('Delete'),
           ),
         ),
@@ -1594,20 +1603,33 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Map semantic colors to M3 tokens
+    Color bg;
+    Color fg;
+    if (color == Colors.blue) {
+      bg = cs.primaryContainer;
+      fg = cs.onPrimaryContainer;
+    } else if (color == Colors.green) {
+      bg = isDark ? const Color(0xFF1B3A2A) : const Color(0xFFD4F5DC);
+      fg = isDark ? const Color(0xFFA8DAB5) : const Color(0xFF1B6B35);
+    } else if (color == Colors.orange) {
+      bg = cs.secondaryContainer;
+      fg = cs.onSecondaryContainer;
+    } else {
+      bg = cs.surfaceContainerHighest;
+      fg = cs.onSurfaceVariant;
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.2 : 0.12),
+        color: bg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: isDark ? color.withOpacity(0.9) : color.withOpacity(0.8),
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
+        style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w500),
       ),
     );
   }

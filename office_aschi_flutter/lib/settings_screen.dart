@@ -70,14 +70,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
               // Appearance section
-              Text(
-                'Appearance',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: cs.primary,
-                  fontWeight: FontWeight.w600,
+              Padding(
+                padding: const EdgeInsets.only(left: 16, bottom: 8),
+                child: Text(
+                  'Appearance',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: cs.primary),
                 ),
               ),
-              const SizedBox(height: 8),
               Card(
                 child: Column(
                   children: [
@@ -130,14 +131,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
               // Updates section (Android only)
               if (!kIsWeb) ...[
-                Text(
-                  'Updates',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w600,
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, bottom: 8),
+                  child: Text(
+                    'Updates',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelLarge?.copyWith(color: cs.primary),
                   ),
                 ),
-                const SizedBox(height: 8),
                 Card(
                   child: Column(
                     children: [
@@ -173,14 +175,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 24),
               ],
               // About section
-              Text(
-                'About',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: cs.primary,
-                  fontWeight: FontWeight.w600,
+              Padding(
+                padding: const EdgeInsets.only(left: 16, bottom: 8),
+                child: Text(
+                  'About',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: cs.primary),
                 ),
               ),
-              const SizedBox(height: 8),
               Card(
                 child: Column(
                   children: [
@@ -207,14 +210,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 24),
               // GitHub section
-              Text(
-                'GitHub',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: cs.primary,
-                  fontWeight: FontWeight.w600,
+              Padding(
+                padding: const EdgeInsets.only(left: 16, bottom: 8),
+                child: Text(
+                  'GitHub',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: cs.primary),
                 ),
               ),
-              const SizedBox(height: 8),
               Card(
                 child: Column(
                   children: [

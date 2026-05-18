@@ -59,40 +59,22 @@ class MyApp extends StatelessWidget {
               builder: (context, useDynamic, _) {
                 final effectiveLight = useDynamic ? lightDynamic : null;
                 final effectiveDark = useDynamic ? darkDynamic : null;
+                final lightScheme =
+                    effectiveLight ??
+                    ColorScheme.fromSeed(seedColor: Colors.deepPurple);
+                final darkScheme =
+                    effectiveDark ??
+                    ColorScheme.fromSeed(
+                      seedColor: Colors.deepPurple,
+                      brightness: Brightness.dark,
+                    );
                 return MaterialApp(
                   navigatorKey: navigatorKey,
                   title: 'Office Aschi',
                   debugShowCheckedModeBanner: false,
                   themeMode: themeMode,
-                  theme: ThemeData(
-                    colorScheme:
-                        effectiveLight ??
-                        ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-                    useMaterial3: true,
-                    cardTheme: CardThemeData(
-                      elevation: 0,
-                      clipBehavior: Clip.antiAlias,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                  darkTheme: ThemeData(
-                    colorScheme:
-                        effectiveDark ??
-                        ColorScheme.fromSeed(
-                          seedColor: Colors.deepPurple,
-                          brightness: Brightness.dark,
-                        ),
-                    useMaterial3: true,
-                    cardTheme: CardThemeData(
-                      elevation: 0,
-                      clipBehavior: Clip.antiAlias,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
+                  theme: _buildTheme(lightScheme),
+                  darkTheme: _buildTheme(darkScheme),
                   builder: (context, child) {
                     final api = ApiService();
                     Widget content = Column(
@@ -138,6 +120,127 @@ class MyApp extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  static ThemeData _buildTheme(ColorScheme colorScheme) {
+    return ThemeData(
+      colorScheme: colorScheme,
+      useMaterial3: true,
+      cardTheme: CardThemeData(
+        elevation: 0,
+        clipBehavior: Clip.antiAlias,
+        color: colorScheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      appBarTheme: AppBarTheme(
+        centerTitle: false,
+        scrolledUnderElevation: 2,
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: colorScheme.surfaceTint,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHighest,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outline),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outline),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        surfaceTintColor: colorScheme.surfaceTint,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: colorScheme.inverseSurface,
+        contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      listTileTheme: ListTileThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      dividerTheme: const DividerThemeData(space: 1),
+      switchTheme: SwitchThemeData(
+        thumbIcon: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const Icon(Icons.check, size: 16);
+          }
+          return null;
+        }),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 3,
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        indicatorColor: colorScheme.secondaryContainer,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      ),
+      searchBarTheme: SearchBarThemeData(
+        elevation: WidgetStatePropertyAll(0),
+        backgroundColor: WidgetStatePropertyAll(
+          colorScheme.surfaceContainerHigh,
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: colorScheme.surfaceContainerHighest,
+        labelColor: colorScheme.primary,
+        unselectedLabelColor: colorScheme.onSurfaceVariant,
+      ),
     );
   }
 }

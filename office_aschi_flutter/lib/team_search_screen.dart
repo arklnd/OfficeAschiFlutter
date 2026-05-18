@@ -129,20 +129,20 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
+                        color: Theme.of(ctx).colorScheme.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: QrImageView(
                         data: otpUri,
                         version: QrVersions.auto,
                         size: 200,
-                        eyeStyle: const QrEyeStyle(
+                        eyeStyle: QrEyeStyle(
                           eyeShape: QrEyeShape.square,
-                          color: Color(0xFF1a237e),
+                          color: Theme.of(ctx).colorScheme.onSurface,
                         ),
-                        dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleStyle: QrDataModuleStyle(
                           dataModuleShape: QrDataModuleShape.square,
-                          color: Color(0xFF1a237e),
+                          color: Theme.of(ctx).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -153,16 +153,16 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Theme.of(ctx).colorScheme.secondaryContainer,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
                       ),
                       child: SelectableText(
                         secret,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
+                          color: Theme.of(ctx).colorScheme.onSecondaryContainer,
                         ),
                       ),
                     ),
@@ -249,7 +249,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text('Cancel'),
               ),
-              ElevatedButton(
+              FilledButton(
                 onPressed: creating
                     ? null
                     : () async {
@@ -389,7 +389,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(20),
                                     decoration: BoxDecoration(
-                                      color: cs.errorContainer.withOpacity(0.3),
+                                      color: cs.errorContainer,
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
@@ -397,7 +397,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                                           ? Icons.wifi_off_rounded
                                           : Icons.cloud_off_rounded,
                                       size: 48,
-                                      color: cs.error,
+                                      color: cs.onErrorContainer,
                                     ),
                                   ),
                                   const SizedBox(height: 20),
@@ -536,17 +536,29 @@ class _Tag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Derive a tonal container from the semantic color
+    final bgColor = color == Colors.blue
+        ? cs.primaryContainer
+        : color == Colors.green
+        ? (isDark ? const Color(0xFF1B3A2A) : const Color(0xFFD4F5DC))
+        : cs.secondaryContainer;
+    final fgColor = color == Colors.blue
+        ? cs.onPrimaryContainer
+        : color == Colors.green
+        ? (isDark ? const Color(0xFFA8DAB5) : const Color(0xFF1B6B35))
+        : cs.onSecondaryContainer;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.2 : 0.1),
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: isDark ? color.withOpacity(0.9) : color.withOpacity(0.8),
+          color: fgColor,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
