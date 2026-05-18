@@ -170,8 +170,9 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                     Wrap(
                       alignment: WrapAlignment.center,
                       spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        TextButton.icon(
+                        ElevatedButton.icon(
                           onPressed: () async {
                             final name = nameCtrl.text.isNotEmpty
                                 ? nameCtrl.text
@@ -189,7 +190,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                           icon: const Icon(Icons.download, size: 16),
                           label: const Text('Download QR'),
                         ),
-                        TextButton.icon(
+                        ElevatedButton.icon(
                           onPressed: () {
                             Clipboard.setData(ClipboardData(text: secret));
                             ScaffoldMessenger.of(ctx).showSnackBar(
@@ -199,7 +200,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                           icon: const Icon(Icons.copy, size: 16),
                           label: const Text('Copy Secret'),
                         ),
-                        TextButton.icon(
+                        ElevatedButton.icon(
                           onPressed: () async {
                             final uri = Uri.parse(otpUri);
                             try {
