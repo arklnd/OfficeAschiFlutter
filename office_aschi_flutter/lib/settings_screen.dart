@@ -89,7 +89,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       selected: mode == ThemeMode.system,
                       onTap: () => setThemeMode(ThemeMode.system),
                     ),
-                    const Divider(height: 1, indent: 56),
                     _ThemeTile(
                       icon: Icons.light_mode,
                       title: 'Light',
@@ -97,7 +96,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       selected: mode == ThemeMode.light,
                       onTap: () => setThemeMode(ThemeMode.light),
                     ),
-                    const Divider(height: 1, indent: 56),
                     _ThemeTile(
                       icon: Icons.dark_mode,
                       title: 'Dark',
@@ -114,10 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   valueListenable: dynamicColorNotifier,
                   builder: (context, useDynamic, _) {
                     return SwitchListTile(
-                      secondary: Icon(
-                        Icons.palette,
-                        color: cs.onSurfaceVariant,
-                      ),
+                      secondary: _IconBox(icon: Icons.palette, colorScheme: cs),
                       title: const Text('Dynamic color'),
                       subtitle: const Text(
                         'Use wallpaper colors (Android 12+)',
@@ -144,9 +139,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     children: [
                       SwitchListTile(
-                        secondary: Icon(
-                          Icons.update,
-                          color: cs.onSurfaceVariant,
+                        secondary: _IconBox(
+                          icon: Icons.update,
+                          colorScheme: cs,
                         ),
                         title: const Text('Automatic update check'),
                         subtitle: const Text(
@@ -155,11 +150,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         value: _autoUpdate,
                         onChanged: _toggleAutoUpdate,
                       ),
-                      const Divider(height: 1, indent: 56),
                       ListTile(
-                        leading: Icon(
-                          Icons.system_update,
-                          color: cs.onSurfaceVariant,
+                        leading: _IconBox(
+                          icon: Icons.system_update,
+                          colorScheme: cs,
                         ),
                         title: const Text('Check for updates'),
                         subtitle: Text('Channel: ${UpdateService.channel}'),
@@ -188,9 +182,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: Icon(
-                        Icons.info_outline,
-                        color: cs.onSurfaceVariant,
+                      leading: _IconBox(
+                        icon: Icons.info_outline,
+                        colorScheme: cs,
                       ),
                       title: const Text('Office Aschi'),
                       subtitle: Text(
@@ -199,9 +193,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             : 'v$appVersion (${UpdateService.channel})',
                       ),
                     ),
-                    const Divider(height: 1, indent: 56),
                     ListTile(
-                      leading: Icon(Icons.code, color: cs.onSurfaceVariant),
+                      leading: _IconBox(icon: Icons.code, colorScheme: cs),
                       title: const Text('Built with Flutter'),
                       subtitle: const Text('Cross-platform seat booking'),
                     ),
@@ -223,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: Icon(Icons.source, color: cs.onSurfaceVariant),
+                      leading: _IconBox(icon: Icons.source, colorScheme: cs),
                       title: const Text('Source Code'),
                       subtitle: const Text('arklnd/OfficeAschiFlutter'),
                       trailing: Icon(
@@ -237,11 +230,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         mode: LaunchMode.externalApplication,
                       ),
                     ),
-                    const Divider(height: 1, indent: 56),
                     ListTile(
-                      leading: Icon(
-                        Icons.bug_report,
-                        color: cs.onSurfaceVariant,
+                      leading: _IconBox(
+                        icon: Icons.bug_report,
+                        colorScheme: cs,
                       ),
                       title: const Text('Report an Issue'),
                       subtitle: const Text('Bugs & feature requests'),
@@ -256,11 +248,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         mode: LaunchMode.externalApplication,
                       ),
                     ),
-                    const Divider(height: 1, indent: 56),
                     ListTile(
-                      leading: Icon(
-                        Icons.new_releases_outlined,
-                        color: cs.onSurfaceVariant,
+                      leading: _IconBox(
+                        icon: Icons.new_releases_outlined,
+                        colorScheme: cs,
                       ),
                       title: const Text('Releases'),
                       subtitle: const Text('Download latest versions'),
@@ -305,7 +296,19 @@ class _ThemeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return ListTile(
-      leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: selected ? cs.primaryContainer : cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          icon,
+          color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+          size: 22,
+        ),
+      ),
       title: Text(
         title,
         style: TextStyle(
@@ -318,6 +321,26 @@ class _ThemeTile extends StatelessWidget {
           ? Icon(Icons.check_circle, color: cs.primary)
           : const SizedBox.shrink(),
       onTap: onTap,
+    );
+  }
+}
+
+class _IconBox extends StatelessWidget {
+  final IconData icon;
+  final ColorScheme colorScheme;
+
+  const _IconBox({required this.icon, required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 22),
     );
   }
 }

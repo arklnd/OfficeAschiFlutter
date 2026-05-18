@@ -494,18 +494,46 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            subtitle: Row(
-                              children: [
-                                _Tag(
-                                  label: '${team.seatCount} seats',
-                                  color: Colors.blue,
-                                ),
-                                const SizedBox(width: 8),
-                                _Tag(
-                                  label: '${team.memberCount} members',
-                                  color: Colors.green,
-                                ),
-                              ],
+                            subtitle: Builder(
+                              builder: (context) {
+                                final cs = Theme.of(context).colorScheme;
+                                final isDark =
+                                    Theme.of(context).brightness ==
+                                    Brightness.dark;
+                                return Wrap(
+                                  spacing: 6,
+                                  children: [
+                                    Chip(
+                                      label: Text('${team.seatCount} seats'),
+                                      backgroundColor: cs.primaryContainer,
+                                      labelStyle: TextStyle(
+                                        color: cs.onPrimaryContainer,
+                                      ),
+                                      side: BorderSide.none,
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    Chip(
+                                      label: Text(
+                                        '${team.memberCount} members',
+                                      ),
+                                      backgroundColor: isDark
+                                          ? const Color(0xFF1B3A2A)
+                                          : const Color(0xFFD4F5DC),
+                                      labelStyle: TextStyle(
+                                        color: isDark
+                                            ? const Color(0xFFA8DAB5)
+                                            : const Color(0xFF1B6B35),
+                                      ),
+                                      side: BorderSide.none,
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
@@ -524,44 +552,6 @@ class _TeamSearchScreenState extends State<TeamSearchScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _Tag({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Derive a tonal container from the semantic color
-    final bgColor = color == Colors.blue
-        ? cs.primaryContainer
-        : color == Colors.green
-        ? (isDark ? const Color(0xFF1B3A2A) : const Color(0xFFD4F5DC))
-        : cs.secondaryContainer;
-    final fgColor = color == Colors.blue
-        ? cs.onPrimaryContainer
-        : color == Colors.green
-        ? (isDark ? const Color(0xFFA8DAB5) : const Color(0xFF1B6B35))
-        : cs.onSecondaryContainer;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: fgColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
       ),
     );
   }

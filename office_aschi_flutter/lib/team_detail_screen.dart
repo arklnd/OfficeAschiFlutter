@@ -1139,20 +1139,40 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
 
   Widget _buildStats() {
     final a = _availability;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Wrap(
       spacing: 8,
       children: [
-        _StatChip(label: '${a?.bookedCount ?? 0} booked', color: Colors.blue),
-        _StatChip(
-          label: '${a?.availableCount ?? 0} available',
-          color: Colors.green,
+        Chip(
+          label: Text('${a?.bookedCount ?? 0} booked'),
+          backgroundColor: cs.primaryContainer,
+          labelStyle: TextStyle(color: cs.onPrimaryContainer),
+          side: BorderSide.none,
+        ),
+        Chip(
+          label: Text('${a?.availableCount ?? 0} available'),
+          backgroundColor: isDark
+              ? const Color(0xFF1B3A2A)
+              : const Color(0xFFD4F5DC),
+          labelStyle: TextStyle(
+            color: isDark ? const Color(0xFFA8DAB5) : const Color(0xFF1B6B35),
+          ),
+          side: BorderSide.none,
         ),
         if ((a?.waitlistedCount ?? 0) > 0)
-          _StatChip(
-            label: '${a!.waitlistedCount} waitlisted',
-            color: Colors.orange,
+          Chip(
+            label: Text('${a!.waitlistedCount} waitlisted'),
+            backgroundColor: cs.secondaryContainer,
+            labelStyle: TextStyle(color: cs.onSecondaryContainer),
+            side: BorderSide.none,
           ),
-        _StatChip(label: '${a?.totalSeats ?? 0} total', color: Colors.grey),
+        Chip(
+          label: Text('${a?.totalSeats ?? 0} total'),
+          backgroundColor: cs.surfaceContainerHighest,
+          labelStyle: TextStyle(color: cs.onSurfaceVariant),
+          side: BorderSide.none,
+        ),
       ],
     );
   }
@@ -1243,12 +1263,13 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             final greenContainer = isDark
                 ? const Color(0xFF1B3A2A) // dark green container
                 : const Color(0xFFD4F5DC); // light green container
-            final onGreenContainer = isDark
-                ? const Color(0xFFA8DAB5) // dark on-green-container
-                : const Color(0xFF1B6B35); // light on-green-container
-            final greenOutline = isDark
-                ? const Color(0xFF4E9A6B)
-                : const Color(0xFF4CAF6A);
+            // Softer mid-tone green for button (30% less contrast)
+            final greenButtonBg = isDark
+                ? const Color(0xFF2D5E44)
+                : const Color(0xFF8FCF9E);
+            final greenButtonFg = isDark
+                ? const Color(0xFFD4F5DC)
+                : const Color(0xFF0D4A22);
             return Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -1311,14 +1332,20 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                     else
                       SizedBox(
                         width: double.infinity,
-                        child: OutlinedButton.icon(
+                        child: FilledButton.tonal(
                           onPressed: () =>
                               _openBookDialog(seat.seatId, seat.label),
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Book'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: onGreenContainer,
-                            side: BorderSide(color: greenOutline),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: greenButtonBg,
+                            foregroundColor: greenButtonFg,
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add, size: 16),
+                              SizedBox(width: 4),
+                              Text('Book'),
+                            ],
                           ),
                         ),
                       ),
@@ -1591,45 +1618,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             child: const Text('Delete'),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _StatChip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Map semantic colors to M3 tokens
-    Color bg;
-    Color fg;
-    if (color == Colors.blue) {
-      bg = cs.primaryContainer;
-      fg = cs.onPrimaryContainer;
-    } else if (color == Colors.green) {
-      bg = isDark ? const Color(0xFF1B3A2A) : const Color(0xFFD4F5DC);
-      fg = isDark ? const Color(0xFFA8DAB5) : const Color(0xFF1B6B35);
-    } else if (color == Colors.orange) {
-      bg = cs.secondaryContainer;
-      fg = cs.onSecondaryContainer;
-    } else {
-      bg = cs.surfaceContainerHighest;
-      fg = cs.onSurfaceVariant;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w500),
       ),
     );
   }
