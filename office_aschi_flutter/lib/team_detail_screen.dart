@@ -742,9 +742,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            ctx,
-                          ).colorScheme.surfaceContainerLowest,
+                          color: Theme.of(ctx).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: QrImageView(
@@ -753,11 +751,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           size: 200,
                           eyeStyle: QrEyeStyle(
                             eyeShape: QrEyeShape.square,
-                            color: Theme.of(ctx).colorScheme.onSurface,
+                            color: Theme.of(ctx).colorScheme.primary,
                           ),
                           dataModuleStyle: QrDataModuleStyle(
                             dataModuleShape: QrDataModuleShape.square,
-                            color: Theme.of(ctx).colorScheme.onSurface,
+                            color: Theme.of(ctx).colorScheme.primary,
                           ),
                         ),
                       ),
@@ -768,7 +766,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Theme.of(ctx).colorScheme.inverseSurface,
+                          color: Theme.of(ctx).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: SelectableText(
@@ -777,7 +775,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                             fontFamily: 'monospace',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Theme.of(ctx).colorScheme.onInverseSurface,
+                            color: Theme.of(ctx).colorScheme.onPrimaryContainer,
                           ),
                         ),
                       ),
