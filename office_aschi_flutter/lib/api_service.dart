@@ -292,6 +292,16 @@ class ApiService with WidgetsBindingObserver {
   }
 
   // --- Bookings ---
+  Future<List<SeatOverviewResponse>> getAllSeats(String date) async {
+    final response = await http.get(Uri.parse('$baseUrl/seats?date=$date'));
+    if (response.statusCode == 200) {
+      return (json.decode(response.body) as List)
+          .map((s) => SeatOverviewResponse.fromJson(s))
+          .toList();
+    }
+    throw Exception('Failed to load seats');
+  }
+
   Future<AvailabilityResponse> getAvailability(int teamId, String date) async {
     final response = await http.get(
       Uri.parse('$baseUrl/bookings/availability/$teamId?date=$date'),

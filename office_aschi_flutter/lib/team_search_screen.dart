@@ -10,6 +10,7 @@ import 'totp_service.dart';
 import 'qr_download.dart';
 import 'team_detail_screen.dart';
 import 'settings_screen.dart';
+import 'seat_search_screen.dart';
 import 'update_service.dart';
 import 'version.dart';
 
@@ -389,6 +390,39 @@ class _TeamSearchScreenState extends State<TeamSearchScreen>
             },
           ),
           const SizedBox(width: 8),
+        ],
+      ),
+      drawer: NavigationDrawer(
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          Navigator.pop(context); // close drawer
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SeatSearchScreen()),
+            );
+          }
+        },
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
+            child: Text(
+              'Office Aschi',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(color: cs.onSurfaceVariant),
+            ),
+          ),
+          const NavigationDrawerDestination(
+            icon: Icon(Icons.group_outlined),
+            selectedIcon: Icon(Icons.group),
+            label: Text('Teams'),
+          ),
+          const NavigationDrawerDestination(
+            icon: Icon(Icons.event_seat_outlined),
+            selectedIcon: Icon(Icons.event_seat),
+            label: Text('Seat Search'),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(

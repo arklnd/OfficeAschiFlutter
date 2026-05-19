@@ -197,3 +197,59 @@ class SeatView {
     this.booking,
   });
 }
+
+// --- All Seats Overview ---
+class SeatOverviewBooking {
+  final int reporteeId;
+  final String reporteeName;
+  final int bookingId;
+  final String status;
+  final String createdAt;
+
+  SeatOverviewBooking({
+    required this.reporteeId,
+    required this.reporteeName,
+    required this.bookingId,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory SeatOverviewBooking.fromJson(Map<String, dynamic> json) =>
+      SeatOverviewBooking(
+        reporteeId: json['reporteeId'],
+        reporteeName: json['reporteeName'],
+        bookingId: json['bookingId'],
+        status: json['status'],
+        createdAt: json['createdAt'],
+      );
+}
+
+class SeatOverviewResponse {
+  final int id;
+  final String label;
+  final int teamId;
+  final String teamName;
+  final bool isEngaged;
+  final SeatOverviewBooking? engagedBy;
+
+  SeatOverviewResponse({
+    required this.id,
+    required this.label,
+    required this.teamId,
+    required this.teamName,
+    required this.isEngaged,
+    this.engagedBy,
+  });
+
+  factory SeatOverviewResponse.fromJson(Map<String, dynamic> json) =>
+      SeatOverviewResponse(
+        id: json['id'],
+        label: json['label'],
+        teamId: json['teamId'],
+        teamName: json['teamName'],
+        isEngaged: json['isEngaged'] ?? false,
+        engagedBy: json['engagedBy'] != null
+            ? SeatOverviewBooking.fromJson(json['engagedBy'])
+            : null,
+      );
+}

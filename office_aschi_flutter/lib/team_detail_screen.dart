@@ -1299,6 +1299,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             return Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: isBooked
+                      ? cs.primary
+                      : (isDark
+                            ? const Color(0xFF2E7D50)
+                            : const Color(0xFF43A047)),
+                  width: 1,
+                ),
               ),
               color: isBooked ? cs.primaryContainer : greenContainer,
               child: Padding(
