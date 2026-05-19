@@ -377,6 +377,10 @@ class _TeamSearchScreenState extends State<TeamSearchScreen>
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Settings',
+            style: IconButton.styleFrom(
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
+            ),
             onPressed: () {
               Navigator.push(
                 context,

@@ -1007,6 +1007,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       );
     }
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Text(_team?.name ?? 'Loading...'),
@@ -1015,11 +1016,20 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             icon: const Icon(Icons.share),
             onPressed: _copyTeamUrl,
             tooltip: 'Copy team link',
+            style: IconButton.styleFrom(
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
+            ),
           ),
+          const SizedBox(width: 6),
           IconButton(
             icon: const Icon(Icons.person_add),
             onPressed: _openJoinDialog,
             tooltip: 'Join team',
+            style: IconButton.styleFrom(
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
+            ),
           ),
         ],
         bottom: TabBar(
