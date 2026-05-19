@@ -1032,6 +1032,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               foregroundColor: cs.onPrimaryContainer,
             ),
           ),
+          const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,

@@ -388,6 +388,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen>
               );
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       floatingActionButton: FloatingActionButton(
