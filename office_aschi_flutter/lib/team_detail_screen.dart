@@ -1008,6 +1008,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     }
 
     final cs = Theme.of(context).colorScheme;
+    final pendingCount = _pendingReportees.length;
     return Scaffold(
       appBar: AppBar(
         title: Text(_team?.name ?? 'Loading...'),
@@ -1034,9 +1035,16 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Bookings', icon: Icon(Icons.calendar_today)),
-            Tab(text: 'Manage', icon: Icon(Icons.settings)),
+          tabs: [
+            const Tab(text: 'Bookings', icon: Icon(Icons.calendar_today)),
+            Tab(
+              text: 'Manage',
+              icon: Badge(
+                isLabelVisible: pendingCount > 0,
+                label: Text('$pendingCount'),
+                child: const Icon(Icons.settings),
+              ),
+            ),
           ],
         ),
       ),
