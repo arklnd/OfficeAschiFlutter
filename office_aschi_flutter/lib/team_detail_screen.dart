@@ -272,7 +272,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               },
             ),
             const SizedBox(height: 8),
-            TextButton.icon(
+            ElevatedButton.icon(
               onPressed: () => _launchAuthenticator(ctx),
               icon: const Icon(Icons.open_in_new, size: 18),
               label: const Text('Open Authenticator App'),
@@ -383,7 +383,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                 },
               ),
               const SizedBox(height: 4),
-              TextButton.icon(
+              ElevatedButton.icon(
                 onPressed: () => _launchAuthenticator(ctx),
                 icon: const Icon(Icons.open_in_new, size: 18),
                 label: const Text('Open Authenticator App'),
