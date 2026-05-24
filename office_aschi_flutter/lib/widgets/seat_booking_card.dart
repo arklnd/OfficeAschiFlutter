@@ -1,54 +1,48 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../models/models.dart';
+import 'base_seat_card.dart';
+import 'seat_card_theme.dart';
 
-/// Reusable seat booking card used in team detail bookings tab.
+/// Seat card used in the **team detail bookings** tab.
 ///
 /// Shows a seat's label, booking status, and either the booked person's
 /// info or a "Book" button for available seats.
+///
+/// All visual properties (background, border, avatar, button, label) are
+/// read from the [ResolvedSeatCardTheme] provided by [BaseSeatCard].
+/// Override them per-card via [themeOverride] or for an entire subtree
+/// via an ancestor [SeatCardTheme].
 class SeatBookingCard extends StatelessWidget {
   final SeatView seat;
   final VoidCallback? onBook;
   final VoidCallback? onCancel;
+  final SeatCardThemeData? themeOverride;
 
   const SeatBookingCard({
     super.key,
     required this.seat,
     this.onBook,
     this.onCancel,
+    this.themeOverride,
   });
 
   @override
   Widget build(BuildContext context) {
     final isBooked = seat.status == 'booked';
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isBooked ? cs.primary : AppColors.greenBorder(isDark),
-          width: 1,
-        ),
-      ),
-      color: isBooked ? cs.primaryContainer : AppColors.greenContainer(isDark),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+    return BaseSeatCard(
+      isEngaged: isBooked,
+      themeOverride: themeOverride,
+      builder: (context, theme) {
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // -- Header row: label + optional cancel button --
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    seat.label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
+                  child: Text(seat.label, style: theme.labelStyle),
                 ),
                 if (isBooked && onCancel != null)
                   IconButton(
@@ -61,23 +55,28 @@ class SeatBookingCard extends StatelessWidget {
               ],
             ),
             const Spacer(),
+            // -- Body: person info or book button --
             if (isBooked)
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 14,
-                    backgroundColor: cs.primary,
+                    radius: theme.avatarRadius,
+                    backgroundColor: theme.avatarBackgroundColor,
                     child: Text(
                       seat.personName.isNotEmpty
                           ? seat.personName[0].toUpperCase()
                           : '?',
-                      style: TextStyle(color: cs.onPrimary, fontSize: 12),
+                      style: TextStyle(
+                        color: theme.avatarForegroundColor,
+                        fontSize: theme.avatarRadius - 1,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       seat.personName,
+                      style: theme.personNameStyle,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -89,8 +88,8 @@ class SeatBookingCard extends StatelessWidget {
                 child: FilledButton.tonal(
                   onPressed: onBook,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.greenButtonBg(isDark),
-                    foregroundColor: AppColors.greenButtonFg(isDark),
+                    backgroundColor: theme.buttonBackgroundColor,
+                    foregroundColor: theme.buttonForegroundColor,
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -103,51 +102,44 @@ class SeatBookingCard extends StatelessWidget {
                 ),
               ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-/// Reusable seat overview card used in the cross-team seat search screen.
+/// Seat card used in the **cross-team seat search** screen.
 ///
-/// Shows seat label, team name, engaged/vacant status, and engaged person info.
+/// Shows seat label, team name, engaged/vacant status badge, and the
+/// engaged person's info. All visual tokens come from the resolved theme.
 class SeatOverviewCard extends StatelessWidget {
   final SeatOverviewResponse seat;
+  final SeatCardThemeData? themeOverride;
 
-  const SeatOverviewCard({super.key, required this.seat});
+  const SeatOverviewCard({
+    super.key,
+    required this.seat,
+    this.themeOverride,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final engaged = seat.isEngaged;
 
-    final bgColor = engaged
-        ? (isDark ? cs.primaryContainer.withValues(alpha: 0.4) : cs.primaryContainer)
-        : AppColors.greenContainer(isDark);
-    final borderColor = engaged ? cs.primary : AppColors.greenBorder(isDark);
-
-    return Card(
-      color: bgColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: borderColor, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+    return BaseSeatCard(
+      isEngaged: seat.isEngaged,
+      themeOverride: themeOverride,
+      builder: (context, theme) {
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // -- Header row: label + status badge --
             Row(
               children: [
                 Expanded(
                   child: Text(
                     seat.label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
+                    style: theme.labelStyle,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -157,59 +149,55 @@ class SeatOverviewCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: engaged
-                        ? cs.error.withValues(alpha: 0.15)
-                        : AppColors.greenTextLight.withValues(alpha: 0.15),
+                    color: theme.badgeColor(seat.isEngaged),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    engaged ? 'Engaged' : 'Vacant',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: engaged
-                          ? cs.error
-                          : AppColors.greenBorderDark,
+                    seat.isEngaged ? 'Engaged' : 'Vacant',
+                    style: theme.badgeTextStyle.copyWith(
+                      color: theme.badgeTextColor(seat.isEngaged),
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 2),
+            // -- Team name --
             Text(
               seat.teamName,
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               overflow: TextOverflow.ellipsis,
             ),
             const Spacer(),
-            if (engaged && seat.engagedBy != null)
+            // -- Engaged person info --
+            if (seat.isEngaged && seat.engagedBy != null)
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 12,
-                    backgroundColor: cs.primary,
+                    radius: theme.avatarRadius,
+                    backgroundColor: theme.avatarBackgroundColor,
                     child: Text(
                       seat.engagedBy!.reporteeName[0].toUpperCase(),
                       style: TextStyle(
-                        color: cs.onPrimary,
-                        fontSize: 11,
+                        color: theme.avatarForegroundColor,
+                        fontSize: theme.avatarRadius - 1,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       seat.engagedBy!.reporteeName,
-                      style: const TextStyle(fontSize: 13),
+                      style: theme.personNameStyle,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
