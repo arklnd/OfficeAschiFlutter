@@ -31,7 +31,10 @@ class WaitlistCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: cs.outlineVariant, width: 0.5),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -129,7 +132,10 @@ class AllSeatsBookedCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: cs.outlineVariant, width: 0.5),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

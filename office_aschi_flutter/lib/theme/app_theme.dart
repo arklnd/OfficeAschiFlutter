@@ -42,11 +42,17 @@ ThemeData buildAppTheme(ColorScheme colorScheme) {
     colorScheme: colorScheme,
     useMaterial3: true,
     cardTheme: CardThemeData(
-      elevation: 2,
+      elevation: 1,
       clipBehavior: Clip.antiAlias,
       color: colorScheme.surfaceContainerHigh,
       shadowColor: colorScheme.shadow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: colorScheme.outlineVariant,
+          width: 0.5,
+        ),
+      ),
     ),
     appBarTheme: AppBarTheme(
       centerTitle: false,
