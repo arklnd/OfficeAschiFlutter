@@ -39,6 +39,7 @@ class SeatBookingCard extends StatelessWidget {
           children: [
             // -- Header row: label + optional cancel button --
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
@@ -51,6 +52,9 @@ class SeatBookingCard extends StatelessWidget {
                     tooltip: 'Cancel booking',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
+                    style: const ButtonStyle(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                   ),
               ],
             ),
