@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
+import 'section_card.dart';
+
+const _boldTitle = TextStyle(fontWeight: FontWeight.bold, fontSize: 16);
+
+/// Builds the outlined card shape using the current [ColorScheme].
+ShapeBorder _outlinedShapeWith(ColorScheme cs) => RoundedRectangleBorder(
+  borderRadius: BorderRadius.circular(12),
+  side: BorderSide(color: cs.outlineVariant, width: 0.5),
+);
 
 /// Reusable waitlist card showing queued booking requests.
 ///
@@ -11,11 +20,7 @@ class WaitlistCard extends StatelessWidget {
   final List<WaitlistInfo> waitlist;
   final void Function(WaitlistInfo entry)? onCancel;
 
-  const WaitlistCard({
-    super.key,
-    required this.waitlist,
-    this.onCancel,
-  });
+  const WaitlistCard({super.key, required this.waitlist, this.onCancel});
 
   String _formatSince(String raw) {
     try {
@@ -30,83 +35,73 @@ class WaitlistCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: cs.outlineVariant, width: 0.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Waitlist',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            ...waitlist.asMap().entries.map((entry) {
-              final i = entry.key;
-              final w = entry.value;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    // Orange avatar matching Angular's bgColor="orange"
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.orange.shade100,
-                      child: Text(
-                        w.reporteeName.isNotEmpty
-                            ? w.reporteeName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          color: Colors.orange.shade900,
-                          fontWeight: FontWeight.bold,
+    return SectionCard(
+      title: 'Waitlist',
+      titleStyle: _boldTitle,
+      outerPadding: EdgeInsets.zero,
+      shape: _outlinedShapeWith(cs),
+      children: [
+        const SizedBox(height: 8),
+        ...waitlist.asMap().entries.map((entry) {
+          final i = entry.key;
+          final w = entry.value;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                // Orange avatar matching Angular's bgColor="orange"
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.orange.shade100,
+                  child: Text(
+                    w.reporteeName.isNotEmpty
+                        ? w.reporteeName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      color: Colors.orange.shade900,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Name + desired seat + since
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '#${i + 1} — ${w.reporteeName}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Name + desired seat + since
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '#${i + 1} — ${w.reporteeName}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Waiting for ${w.desiredSeatLabel} · since ${_formatSince(w.waitlistedSince)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 2),
+                      Text(
+                        'Waiting for ${w.desiredSeatLabel} · since ${_formatSince(w.waitlistedSince)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    // Cancel button
-                    if (onCancel != null)
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => onCancel!(w),
-                        tooltip: 'Cancel waitlist entry',
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              );
-            }),
-          ],
-        ),
-      ),
+                // Cancel button
+                if (onCancel != null)
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => onCancel!(w),
+                    tooltip: 'Cancel waitlist entry',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 }
@@ -131,94 +126,84 @@ class AllSeatsBookedCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: cs.outlineVariant, width: 0.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'All Seats Booked',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Every seat is taken for this date. You can join the waitlist for any seat below.',
-              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-            ),
-            const SizedBox(height: 12),
-            ...bookedSeats.map((b) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Card(
-                  color: isDark
-                      ? cs.primaryContainer.withValues(alpha: 0.4)
-                      : cs.primaryContainer,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: cs.primary, width: 0.5),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+    return SectionCard(
+      title: 'All Seats Booked',
+      titleStyle: _boldTitle,
+      outerPadding: EdgeInsets.zero,
+      shape: _outlinedShapeWith(cs),
+      children: [
+        const SizedBox(height: 4),
+        Text(
+          'Every seat is taken for this date. You can join the waitlist for any seat below.',
+          style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+        ),
+        const SizedBox(height: 12),
+        ...bookedSeats.map((b) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Card(
+              color: isDark
+                  ? cs.primaryContainer.withValues(alpha: 0.4)
+                  : cs.primaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: cs.primary, width: 0.5),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      b.seatLabel,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
                       children: [
-                        Text(
-                          b.seatLabel,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Colors.teal,
+                          child: Text(
+                            b.reporteeName.isNotEmpty
+                                ? b.reporteeName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 14,
-                              backgroundColor: Colors.teal,
-                              child: Text(
-                                b.reporteeName.isNotEmpty
-                                    ? b.reporteeName[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                b.reporteeName,
-                                style: const TextStyle(fontSize: 13),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => onWaitlist(b.seatId, b.seatLabel),
-                            icon: const Icon(Icons.schedule, size: 16),
-                            label: const Text('Wait for it'),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            b.reporteeName,
+                            style: const TextStyle(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => onWaitlist(b.seatId, b.seatLabel),
+                        icon: const Icon(Icons.schedule, size: 16),
+                        label: const Text('Wait for it'),
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            }),
-          ],
-        ),
-      ),
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }

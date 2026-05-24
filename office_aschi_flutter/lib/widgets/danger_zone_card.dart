@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'section_card.dart';
 
 /// Reusable danger zone card for destructive actions like team deletion.
 class DangerZoneCard extends StatelessWidget {
@@ -21,31 +22,24 @@ class DangerZoneCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Card(
-        color: cs.errorContainer,
-        child: ListTile(
+    return SectionCard(
+      cardColor: cs.errorContainer,
+      contentPadding: EdgeInsets.zero,
+      children: [
+        ListTile(
           leading: Icon(icon, color: cs.onErrorContainer),
-          title: Text(
-            title,
-            style: TextStyle(color: cs.onErrorContainer),
-          ),
+          title: Text(title, style: TextStyle(color: cs.onErrorContainer)),
           subtitle: Text(
             subtitle,
-            style: TextStyle(
-              color: cs.onErrorContainer.withValues(alpha: 0.8),
-            ),
+            style: TextStyle(color: cs.onErrorContainer.withValues(alpha: 0.8)),
           ),
           trailing: TextButton(
             onPressed: onAction,
-            style: TextButton.styleFrom(
-              foregroundColor: cs.onErrorContainer,
-            ),
+            style: TextButton.styleFrom(foregroundColor: cs.onErrorContainer),
             child: Text(actionLabel),
           ),
         ),
-      ),
+      ],
     );
   }
 }

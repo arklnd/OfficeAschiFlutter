@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import 'section_card.dart';
 
 /// Reusable pending approvals card showing members awaiting approval.
 class PendingApprovalsCard extends StatelessWidget {
@@ -18,51 +19,38 @@ class PendingApprovalsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+    return SectionCard(
+      title: 'Pending Approvals',
+      contentPadding: EdgeInsets.zero,
+      children: [
+        ...pendingMembers.map(
+          (r) => ListTile(
+            leading: CircleAvatar(
+              backgroundColor: cs.secondary,
               child: Text(
-                'Pending Approvals',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+                r.friendlyName[0].toUpperCase(),
+                style: TextStyle(color: cs.onSecondary),
               ),
             ),
-            ...pendingMembers.map(
-              (r) => ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: cs.secondary,
-                  child: Text(
-                    r.friendlyName[0].toUpperCase(),
-                    style: TextStyle(color: cs.onSecondary),
-                  ),
+            title: Text(r.friendlyName),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  onPressed: () => onApprove(r.id),
+                  child: const Text('Approve'),
                 ),
-                title: Text(r.friendlyName),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextButton(
-                      onPressed: () => onApprove(r.id),
-                      child: const Text('Approve'),
-                    ),
-                    TextButton(
-                      onPressed: () => onDeny(r),
-                      style: TextButton.styleFrom(foregroundColor: cs.error),
-                      child: const Text('Deny'),
-                    ),
-                  ],
+                TextButton(
+                  onPressed: () => onDeny(r),
+                  style: TextButton.styleFrom(foregroundColor: cs.error),
+                  child: const Text('Deny'),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
