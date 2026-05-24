@@ -35,6 +35,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   List<SeatResponse> _seats = [];
   List<ReporteeResponse> _reportees = [];
   AvailabilityResponse? _availability;
+  AvailabilityResponse? _lastAvailability; // kept during refresh for flicker-free UI
   bool _loading = true;
   bool _availabilityLoading = false;
   bool _notFound = false;
@@ -137,12 +138,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     setState(() {
       _availabilityLoading = true;
       _availabilityError = null;
+      // Keep _lastAvailability so waitlist card doesn't flicker away
+      if (_availability != null) _lastAvailability = _availability;
       _availability = null;
     });
     try {
       final avail = await _api.getAvailability(widget.teamId, _dateString);
       setState(() {
         _availability = avail;
+        _lastAvailability = avail;
         _availabilityLoading = false;
         _loading = false;
       });
@@ -241,6 +245,90 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Booking cancelled')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  void _waitlistSeat(int seatId, String seatLabel) async {
+    final bookedIds = (_availability?.bookings ?? [])
+        .map((b) => b.reporteeId)
+        .toSet();
+    final availableReportees = _approvedReportees
+        .where((r) => !bookedIds.contains(r.id))
+        .toList();
+
+    final success = await showBookSeatDialog(
+      context,
+      seatId: seatId,
+      seatLabel: seatLabel,
+      selectedDate: _selectedDate,
+      availableReportees: availableReportees,
+      currentReporteeId: _currentReporteeId,
+      clipboardOtp: clipboardOtp,
+      pasteClipboardCode: pasteClipboardCode,
+      launchAuthenticator: launchAuthenticator,
+    );
+    resetClipboardOtp();
+    if (success == true) {
+      _loadAvailability();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Waitlisted for $seatLabel')),
+        );
+      }
+    }
+  }
+
+  void _cancelWaitlist(WaitlistInfo w) async {
+    final confirmed = await showConfirmActionDialog(
+      context,
+      title: 'Cancel Waitlist',
+      message:
+          'Remove ${w.reporteeName} from the waitlist for ${w.desiredSeatLabel}?',
+      confirmLabel: 'Yes, cancel',
+      cancelLabel: 'No',
+      isDestructive: true,
+    );
+    if (confirmed != true) return;
+
+    // Resolve reporteeId — may be null in model, fall back to name lookup
+    final reporteeId = w.reporteeId ??
+        _reportees
+            .where((r) => r.friendlyName == w.reporteeName)
+            .map((r) => r.id)
+            .firstOrNull;
+    if (reporteeId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot identify reportee')),
+        );
+      }
+      return;
+    }
+
+    final code = await _promptTotp(
+      'Cancel Waitlist',
+      entityName: w.reporteeName,
+      reason: 'Cancel waitlist entry',
+    );
+    if (code == null || code.isEmpty) return;
+    try {
+      await _api.cancelBooking(w.bookingId, reporteeId, code);
+      _loadAvailability();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Removed ${w.reporteeName} from waitlist for ${w.desiredSeatLabel}',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -539,6 +627,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   // ---------------------------------------------------------------------------
 
   Widget _buildBookingsTab() {
+    // Use _lastAvailability during refresh so waitlist/all-booked don't flicker
+    final displayAvail = _availability ?? _lastAvailability;
+    final allBooked = (displayAvail?.availableCount ?? 1) == 0 &&
+        (displayAvail?.totalSeats ?? 0) > 0;
+    final waitlist = displayAvail?.waitlist ?? [];
+
     return RefreshIndicator(
       onRefresh: _loadAvailability,
       child: ListView(
@@ -555,7 +649,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             },
           ),
           const SizedBox(height: 16),
-          AvailabilityStats(availability: _availability),
+          AvailabilityStats(availability: displayAvail),
           const SizedBox(height: 16),
           _availabilityLoading
               ? const Center(
@@ -567,9 +661,24 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
               : _availabilityError != null
               ? _buildAvailabilityError()
               : _buildSeatGrid(),
-          if ((_availability?.waitlist ?? []).isNotEmpty) ...[
-            const SizedBox(height: 24),
-            WaitlistCard(waitlist: _availability!.waitlist),
+          // "All Seats Booked — join waitlist" section
+          if (!_availabilityLoading &&
+              _availabilityError == null &&
+              allBooked &&
+              (displayAvail?.bookings ?? []).isNotEmpty) ...[
+            const SizedBox(height: 16),
+            AllSeatsBookedCard(
+              bookedSeats: displayAvail!.bookings,
+              onWaitlist: _waitlistSeat,
+            ),
+          ],
+          // Current waitlist entries
+          if (waitlist.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            WaitlistCard(
+              waitlist: waitlist,
+              onCancel: _cancelWaitlist,
+            ),
           ],
         ],
       ),

@@ -33,8 +33,8 @@ class AvailabilityStats extends StatelessWidget {
         if ((a?.waitlistedCount ?? 0) > 0)
           Chip(
             label: Text('${a!.waitlistedCount} waitlisted'),
-            backgroundColor: cs.secondaryContainer,
-            labelStyle: TextStyle(color: cs.onSecondaryContainer),
+            backgroundColor: cs.tertiaryContainer,
+            labelStyle: TextStyle(color: cs.onTertiaryContainer),
             side: BorderSide.none,
           ),
         Chip(
