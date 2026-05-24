@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:qr_flutter/qr_flutter.dart';
+import '../theme/app_colors.dart';
 
 // Web-only imports via conditional
 import 'qr_download_stub.dart'
@@ -10,13 +11,13 @@ Future<String?> downloadQrImage(String data, String filename) async {
   final qrPainter = QrPainter(
     data: data,
     version: QrVersions.auto,
-    eyeStyle: const QrEyeStyle(
+    eyeStyle: QrEyeStyle(
       eyeShape: QrEyeShape.square,
-      color: ui.Color(0xFF1a237e),
+      color: AppColors.qrCodeColor,
     ),
-    dataModuleStyle: const QrDataModuleStyle(
+    dataModuleStyle: QrDataModuleStyle(
       dataModuleShape: QrDataModuleShape.square,
-      color: ui.Color(0xFF1a237e),
+      color: AppColors.qrCodeColor,
     ),
   );
 

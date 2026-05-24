@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
-import 'models.dart';
+import '../models/models.dart';
 
 class ApiService with WidgetsBindingObserver {
   final String baseUrl;
@@ -14,7 +14,7 @@ class ApiService with WidgetsBindingObserver {
   /// Reactive connectivity state
   final ValueNotifier<bool> noInternet = ValueNotifier(false);
 
-  /// Emits when backend transitions from down → up
+  /// Emits when backend transitions from down -> up
   final StreamController<void> backendRecovered = StreamController.broadcast();
 
   Timer? _healthTimer;
@@ -51,7 +51,6 @@ class ApiService with WidgetsBindingObserver {
     } else if (state == AppLifecycleState.resumed) {
       _paused = false;
       _consecutiveFailures = 0;
-      // Immediate health check on resume; keep current state until resolved.
       _healthTimer?.cancel();
       _pollHealth();
     }
@@ -67,7 +66,6 @@ class ApiService with WidgetsBindingObserver {
   }
 
   Future<void> _checkHealth() async {
-    // Skip health checks while the app is in the background.
     if (_paused) return;
 
     try {
@@ -89,7 +87,6 @@ class ApiService with WidgetsBindingObserver {
     } catch (e) {
       _consecutiveFailures++;
       if (_consecutiveFailures >= _failureThreshold) {
-        // Network errors (SocketException on native, XMLHttpRequest error on web)
         final msg = e.toString().toLowerCase();
         if (msg.contains('socket') ||
             msg.contains('network') ||
@@ -114,6 +111,7 @@ class ApiService with WidgetsBindingObserver {
   Map<String, String> _jsonHeaders() => {
     'Content-Type': 'application/json; charset=UTF-8',
   };
+
   Map<String, String> _totpHeaders(
     String entityType,
     int entityId,

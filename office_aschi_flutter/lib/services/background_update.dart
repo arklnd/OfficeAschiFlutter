@@ -26,14 +26,12 @@ void callbackDispatcher() {
     if (taskName != _taskName) return true;
 
     try {
-      // Respect the user preference.
       final enabled = await UpdateService.isAutoUpdateEnabled();
       if (!enabled) return true;
 
       final update = await UpdateService.checkForUpdate();
       if (update == null) return true;
 
-      // Show a notification.
       final plugin = FlutterLocalNotificationsPlugin();
       await plugin.initialize(
         const InitializationSettings(
@@ -42,11 +40,11 @@ void callbackDispatcher() {
       );
 
       final changelogPreview = update.changelog.isNotEmpty
-          ? '\n${update.changelog.length > 200 ? '${update.changelog.substring(0, 200)}…' : update.changelog}'
+          ? '\n${update.changelog.length > 200 ? '${update.changelog.substring(0, 200)}...' : update.changelog}'
           : '';
 
       await plugin.show(
-        0, // notification id
+        0,
         'Update Available — v${update.version}',
         '${update.releaseName}$changelogPreview',
         NotificationDetails(

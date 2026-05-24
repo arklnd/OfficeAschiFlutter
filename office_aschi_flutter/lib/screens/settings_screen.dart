@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'background_update.dart';
-import 'main.dart'
-    show themeNotifier, setThemeMode, dynamicColorNotifier, setDynamicColor;
-import 'update_service.dart';
-import 'version.dart';
+import '../services/background_update.dart';
+import '../services/update_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/section_header.dart';
+import '../widgets/icon_box.dart';
+import '../version.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -47,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final update = await UpdateService.checkForUpdate();
 
     if (!context.mounted) return;
-    Navigator.of(context).pop(); // dismiss spinner
+    Navigator.of(context).pop();
 
     if (update != null) {
       showUpdateDialog(context, update);
@@ -70,15 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
               // Appearance section
-              Padding(
-                padding: const EdgeInsets.only(left: 16, bottom: 8),
-                child: Text(
-                  'Appearance',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge?.copyWith(color: cs.primary),
-                ),
-              ),
+              const SectionHeader(title: 'Appearance'),
               Card(
                 child: Column(
                   children: [
@@ -112,7 +105,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   valueListenable: dynamicColorNotifier,
                   builder: (context, useDynamic, _) {
                     return SwitchListTile(
-                      secondary: _IconBox(icon: Icons.palette, colorScheme: cs),
+                      secondary: IconBox(
+                        icon: Icons.palette,
+                        colorScheme: cs,
+                      ),
                       title: const Text('Dynamic color'),
                       subtitle: const Text(
                         'Use wallpaper colors (Android 12+)',
@@ -126,20 +122,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
               // Updates section (Android only)
               if (!kIsWeb) ...[
-                Padding(
-                  padding: const EdgeInsets.only(left: 16, bottom: 8),
-                  child: Text(
-                    'Updates',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelLarge?.copyWith(color: cs.primary),
-                  ),
-                ),
+                const SectionHeader(title: 'Updates'),
                 Card(
                   child: Column(
                     children: [
                       SwitchListTile(
-                        secondary: _IconBox(
+                        secondary: IconBox(
                           icon: Icons.update,
                           colorScheme: cs,
                         ),
@@ -151,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onChanged: _toggleAutoUpdate,
                       ),
                       ListTile(
-                        leading: _IconBox(
+                        leading: IconBox(
                           icon: Icons.system_update,
                           colorScheme: cs,
                         ),
@@ -169,20 +157,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 24),
               ],
               // About section
-              Padding(
-                padding: const EdgeInsets.only(left: 16, bottom: 8),
-                child: Text(
-                  'About',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge?.copyWith(color: cs.primary),
-                ),
-              ),
+              const SectionHeader(title: 'About'),
               Card(
                 child: Column(
                   children: [
                     ListTile(
-                      leading: _IconBox(
+                      leading: IconBox(
                         icon: Icons.info_outline,
                         colorScheme: cs,
                       ),
@@ -194,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     ListTile(
-                      leading: _IconBox(icon: Icons.code, colorScheme: cs),
+                      leading: IconBox(icon: Icons.code, colorScheme: cs),
                       title: const Text('Built with Flutter'),
                       subtitle: const Text('Cross-platform seat booking'),
                     ),
@@ -203,20 +183,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 24),
               // GitHub section
-              Padding(
-                padding: const EdgeInsets.only(left: 16, bottom: 8),
-                child: Text(
-                  'GitHub',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge?.copyWith(color: cs.primary),
-                ),
-              ),
+              const SectionHeader(title: 'GitHub'),
               Card(
                 child: Column(
                   children: [
                     ListTile(
-                      leading: _IconBox(icon: Icons.source, colorScheme: cs),
+                      leading: IconBox(icon: Icons.source, colorScheme: cs),
                       title: const Text('Source Code'),
                       subtitle: const Text('arklnd/OfficeAschiFlutter'),
                       trailing: Icon(
@@ -231,7 +203,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     ListTile(
-                      leading: _IconBox(
+                      leading: IconBox(
                         icon: Icons.bug_report,
                         colorScheme: cs,
                       ),
@@ -249,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     ListTile(
-                      leading: _IconBox(
+                      leading: IconBox(
                         icon: Icons.new_releases_outlined,
                         colorScheme: cs,
                       ),
@@ -321,26 +293,6 @@ class _ThemeTile extends StatelessWidget {
           ? Icon(Icons.check_circle, color: cs.primary)
           : const SizedBox.shrink(),
       onTap: onTap,
-    );
-  }
-}
-
-class _IconBox extends StatelessWidget {
-  final IconData icon;
-  final ColorScheme colorScheme;
-
-  const _IconBox({required this.icon, required this.colorScheme});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: colorScheme.onPrimary, size: 22),
     );
   }
 }

@@ -9,8 +9,8 @@ import 'package:open_filex/open_filex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'background_update.dart';
-import 'main.dart' show navigatorKey;
-import 'version.dart';
+import '../main.dart' show navigatorKey;
+import '../version.dart';
 
 // ---------------------------------------------------------------------------
 // Model
@@ -37,7 +37,7 @@ class AppUpdate {
 }
 
 // ---------------------------------------------------------------------------
-// Service
+// Service (business logic only)
 // ---------------------------------------------------------------------------
 
 class UpdateService {
@@ -45,29 +45,23 @@ class UpdateService {
   static const _repo = 'OfficeAschiFlutter';
   static const _autoUpdateKey = 'autoUpdateCheck';
 
-  /// 'debug' when running a debug build, 'release' otherwise.
   static String get channel => kDebugMode ? 'debug' : 'release';
 
-  /// Whether automatic update checks on app start are enabled.
   static Future<bool> isAutoUpdateEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_autoUpdateKey) ?? true;
   }
 
-  /// Persist the auto-update-check preference.
   static Future<void> setAutoUpdateEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_autoUpdateKey, enabled);
   }
 
-  /// Build number extracted from [appVersion] ("23.0.0-a35ced4" → 23).
   static int? get currentBuildNumber {
     if (appVersion == 'APP_VERSION_PLACEHOLDER') return null;
     return int.tryParse(appVersion.split('.').first);
   }
 
-  /// Queries GitHub Releases and returns the newest release for the current
-  /// channel whose build number is greater than [currentBuildNumber].
   static Future<AppUpdate?> checkForUpdate() async {
     if (kIsWeb) return null;
     if (!Platform.isAndroid) return null;
@@ -134,35 +128,28 @@ class UpdateService {
     }
   }
 
-  /// Expected APK filename for a given update (mirrors the GitHub asset name).
   static String apkFileName(AppUpdate update) {
     return 'office-aschi-flutter-$channel-${update.version}.apk';
   }
 
-  /// Returns the public Downloads directory.
   static Future<Directory> _downloadDir() async {
     final dir = Directory('/storage/emulated/0/Download');
     if (!await dir.exists()) await dir.create(recursive: true);
     return dir;
   }
 
-  /// Checks whether the APK for [update] is already fully downloaded.
-  /// Returns the [File] if it exists with the expected size, otherwise `null`.
   static Future<File?> getExistingApk(AppUpdate update) async {
     final dir = await _downloadDir();
     final file = File('${dir.path}/${apkFileName(update)}');
     if (await file.exists()) {
       final length = await file.length();
-      // If the remote size is known, verify the file is complete.
       if (update.sizeBytes > 0 && length == update.sizeBytes) return file;
       if (update.sizeBytes <= 0 && length > 0) return file;
-      // Incomplete / corrupt – remove it.
       await file.delete();
     }
     return null;
   }
 
-  /// Installs an already-downloaded APK.
   static Future<void> installApk(File file) async {
     await OpenFilex.open(
       file.path,
@@ -170,16 +157,6 @@ class UpdateService {
     );
   }
 
-  /// Downloads the APK to the Downloads folder (or installs an existing one)
-  /// then launches the system package installer.
-  ///
-  /// The download is resilient to interruptions (app backgrounded, screen
-  /// locked, transient network errors). It writes to a `.part` temp file and
-  /// uses HTTP `Range` headers to resume from the last received byte. Up to
-  /// [maxRetries] automatic retries are attempted with exponential back-off.
-  ///
-  /// Prefer using [DownloadManager] instead — it wraps this method with
-  /// singleton state, notification support, and cancellation.
   static Future<void> downloadAndInstall(
     AppUpdate update, {
     ValueChanged<double>? onProgress,
@@ -187,7 +164,6 @@ class UpdateService {
     int maxRetries = 5,
     bool Function()? isCancelled,
   }) async {
-    // If the APK was already downloaded, skip straight to install.
     final existing = await getExistingApk(update);
     if (existing != null) {
       onProgress?.call(1.0);
@@ -200,7 +176,6 @@ class UpdateService {
     final file = File('${dir.path}/$fileName');
     final partFile = File('${dir.path}/$fileName.part');
 
-    // Remove stale update APKs from previous versions.
     final cleaned = await _cleanOldApks(dir, fileName);
     if (cleaned.isNotEmpty) onCleaned?.call(cleaned);
 
@@ -214,11 +189,9 @@ class UpdateService {
 
       HttpClient? httpClient;
       try {
-        // Determine how many bytes we already have from a previous attempt.
         int alreadyReceived = 0;
         if (await partFile.exists()) {
           alreadyReceived = await partFile.length();
-          // If we somehow have more than expected, start fresh.
           if (totalBytes > 0 && alreadyReceived >= totalBytes) {
             await partFile.delete();
             alreadyReceived = 0;
@@ -228,7 +201,6 @@ class UpdateService {
         httpClient = HttpClient();
         final request = await httpClient.getUrl(Uri.parse(update.downloadUrl));
 
-        // Request only the remaining bytes if we already have a partial file.
         if (alreadyReceived > 0) {
           request.headers.set('Range', 'bytes=$alreadyReceived-');
         }
@@ -237,12 +209,10 @@ class UpdateService {
           const Duration(seconds: 30),
         );
 
-        // 200 = full content, 206 = partial content (resume accepted).
         if (response.statusCode != 200 && response.statusCode != 206) {
           throw Exception('Download failed: HTTP ${response.statusCode}');
         }
 
-        // If server returned 200 (ignoring Range), start from scratch.
         if (response.statusCode == 200 && alreadyReceived > 0) {
           await partFile.delete();
           alreadyReceived = 0;
@@ -269,14 +239,12 @@ class UpdateService {
           await sink.close();
         }
 
-        // Verify completeness.
         if (totalBytes > 0 && received < totalBytes) {
           throw Exception(
             'Incomplete download ($received / $totalBytes bytes)',
           );
         }
 
-        // Verify the .part file on disk matches what we expect.
         final partLen = await partFile.length();
         if (totalBytes > 0 && partLen != totalBytes) {
           await partFile.delete();
@@ -285,11 +253,10 @@ class UpdateService {
           );
         }
 
-        // Download complete – rename .part → final file.
         await partFile.rename(file.path);
         onProgress?.call(1.0);
         await installApk(file);
-        return; // success – exit loop
+        return;
       } catch (e) {
         if (e.toString().contains('Download cancelled')) rethrow;
 
@@ -297,28 +264,22 @@ class UpdateService {
         httpClient?.close(force: true);
 
         if (attempt >= maxRetries) {
-          // Clean up the partial file on final failure.
           try {
             if (await partFile.exists()) await partFile.delete();
           } catch (_) {}
           rethrow;
         }
 
-        // Exponential back-off: 2s, 4s, 8s, 16s, 32s …
         final delay = Duration(seconds: 1 << attempt);
         debugPrint(
           'Download interrupted (attempt $attempt/$maxRetries), '
           'retrying in ${delay.inSeconds}s: $e',
         );
         await Future.delayed(delay);
-        // Loop continues → resume from partial file.
       }
     }
   }
 
-  /// Removes old Office Aschi APKs for the current [channel] from [dir],
-  /// keeping [currentName] and any file from a different channel untouched.
-  /// Returns the version strings of deleted files.
   static Future<List<String>> _cleanOldApks(
     Directory dir,
     String currentName,
@@ -332,7 +293,6 @@ class UpdateService {
           if (name.startsWith(prefix) &&
               name.endsWith('.apk') &&
               name != currentName) {
-            // Extract version: "office-aschi-flutter-debug-23.0.0-a35ced4.apk" → "23.0.0-a35ced4"
             final version = name
                 .replaceFirst(prefix, '')
                 .replaceFirst('.apk', '');
@@ -344,8 +304,6 @@ class UpdateService {
     } catch (_) {}
     return deleted;
   }
-
-  // -- helpers --------------------------------------------------------------
 
   static int? _extractBuildNumber(String tag) {
     final match = RegExp(r'^v(\d+)-').firstMatch(tag);
@@ -360,13 +318,11 @@ class UpdateService {
     return tag;
   }
 
-  /// Extracts the changelog section from the release body markdown.
   static String _extractChangelog(String body) {
     final idx = body.indexOf('### Changelog');
     if (idx >= 0) {
       return body.substring(idx + '### Changelog'.length).trim();
     }
-    // Fallback: return lines that look like bullet points.
     final bullets = body
         .split('\n')
         .where(
@@ -381,44 +337,31 @@ class UpdateService {
 // Download Manager – singleton that survives dialog dismissal
 // ---------------------------------------------------------------------------
 
-/// Notification IDs & channel for download progress.
 const _downloadNotifId = 42;
 const _downloadChannelId = 'download_progress';
 const _downloadChannelName = 'Download Progress';
 
-/// Manages a single active download with progress tracking, notification
-/// support, and cancellation. Survives dialog open/close.
 class DownloadManager {
   DownloadManager._();
   static final DownloadManager instance = DownloadManager._();
 
-  /// Current download progress (0.0 – 1.0).
   final ValueNotifier<double> progress = ValueNotifier(0);
 
-  /// Non-null while a download is in progress or completed.
   AppUpdate? activeUpdate;
 
-  /// `true` while a download Future is running.
   bool get isDownloading => _downloading;
   bool _downloading = false;
 
-  /// Error message if the last download failed.
   String? error;
-
-  /// Whether download completed successfully (APK installer launched).
   bool completed = false;
-
   bool _cancelled = false;
 
-  /// When the current download started.
   DateTime? startTime;
 
-  /// Current download speed in bytes/sec (smoothed).
   double _speedBps = 0;
   double _lastProgress = 0;
   DateTime _lastSpeedSample = DateTime.now();
 
-  /// Formatted estimated time remaining.
   String get remainingFormatted {
     if (_speedBps <= 0 || activeUpdate == null) return '';
     final remainingBytes = (1.0 - progress.value) * activeUpdate!.sizeBytes;
@@ -438,7 +381,6 @@ class DownloadManager {
     return '${secondsLeft}s left';
   }
 
-  /// Formatted download speed.
   String get speedFormatted {
     if (_speedBps <= 0) return '';
     if (_speedBps >= 1024 * 1024) {
@@ -447,14 +389,11 @@ class DownloadManager {
     return '${(_speedBps / 1024).toStringAsFixed(0)} KB/s';
   }
 
-  /// Whether a notification is currently showing progress.
   bool _notificationActive = false;
 
   FlutterLocalNotificationsPlugin? _notifPlugin;
   bool _notifInitialized = false;
 
-  /// Initialize the notification plugin eagerly. Call once early (e.g. from
-  /// main or before first download).
   Future<void> initNotifications() async {
     if (_notifInitialized) return;
     if (kIsWeb) return;
@@ -465,7 +404,6 @@ class DownloadManager {
       ),
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
-    // Request permission on Android 13+
     await _notifPlugin!
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -476,7 +414,6 @@ class DownloadManager {
 
   FlutterLocalNotificationsPlugin _getNotifPluginSync() {
     if (_notifPlugin == null) {
-      // Fallback: init synchronously (notification may not show on first call)
       _notifPlugin = FlutterLocalNotificationsPlugin();
       _notifPlugin!.initialize(
         const InitializationSettings(
@@ -488,14 +425,11 @@ class DownloadManager {
     return _notifPlugin!;
   }
 
-  /// Handles notification tap — reopens the download progress dialog.
   void _onNotificationTap(NotificationResponse response) {
     if (response.payload != 'download_progress') return;
     _reopenDownloadDialog();
   }
 
-  /// Reopens the download dialog over the current screen using the global
-  /// navigator key.
   void _reopenDownloadDialog() {
     final update = activeUpdate;
     if (update == null) return;
@@ -504,11 +438,10 @@ class DownloadManager {
     showDialog(
       context: ctx,
       barrierDismissible: true,
-      builder: (_) => _DownloadProgressDialog(update: update),
+      builder: (_) => DownloadProgressDialog(update: update),
     );
   }
 
-  /// Start downloading [update]. No-op if already downloading the same update.
   Future<void> start(AppUpdate update) async {
     if (_downloading && activeUpdate?.tagName == update.tagName) return;
 
@@ -552,13 +485,11 @@ class DownloadManager {
     }
   }
 
-  /// Cancel the active download. Partial file is kept for resume.
   void cancel() {
     _cancelled = true;
     _dismissNotification();
   }
 
-  /// Reset state so a new download can start.
   void reset() {
     activeUpdate = null;
     error = null;
@@ -572,10 +503,8 @@ class DownloadManager {
     final now = DateTime.now();
     final dt = now.difference(_lastSpeedSample).inMilliseconds;
     if (dt > 500) {
-      // bytes downloaded since last sample
       final bytesInInterval = (p - _lastProgress) * totalBytes;
       final instantSpeed = bytesInInterval / (dt / 1000);
-      // Exponential moving average for smoothing
       _speedBps = _speedBps == 0
           ? instantSpeed
           : _speedBps * 0.7 + instantSpeed * 0.3;
@@ -584,17 +513,12 @@ class DownloadManager {
     }
   }
 
-  // -- Notification helpers -------------------------------------------------
-
-  /// Call when the dialog is dismissed while download is active.
   void showNotification(AppUpdate update) {
     if (!_downloading) return;
     _notificationActive = true;
-    // Fire-and-forget — plugin is already initialized.
     _updateNotificationIfActive(update, progress.value);
   }
 
-  /// Call when the dialog is re-shown to stop the notification.
   Future<void> hideNotification() async {
     _notificationActive = false;
     await _dismissNotification();
@@ -697,9 +621,6 @@ class DownloadManager {
 // UI helpers
 // ---------------------------------------------------------------------------
 
-/// Shows a dialog informing the user about the available update. If they
-/// choose to download, a progress dialog follows and the APK installer is
-/// launched automatically.
 Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
   final sizeMb = (update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
   final existingApk = await UpdateService.getExistingApk(update);
@@ -739,7 +660,7 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
                   if (alreadyDownloaded) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'APK already downloaded – ready to install.',
+                      'APK already downloaded — ready to install.',
                       style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                         color: Theme.of(ctx).colorScheme.primary,
                       ),
@@ -787,7 +708,7 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
                     Padding(
                       padding: const EdgeInsets.only(left: 32, top: 2),
                       child: Text(
-                        'You can re-enable this in Settings → Updates.',
+                        'You can re-enable this in Settings -> Updates.',
                         style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                           color: Theme.of(ctx).colorScheme.outline,
                           fontSize: 11,
@@ -824,7 +745,6 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
 
   if (shouldProceed != true || !context.mounted) return;
 
-  // If already downloaded, install directly without the progress dialog.
   if (alreadyDownloaded) {
     await UpdateService.installApk(existingApk);
     return;
@@ -832,33 +752,30 @@ Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
 
   final dm = DownloadManager.instance;
 
-  // If the same update is already downloading, just re-attach the dialog.
   if (!dm.isDownloading || dm.activeUpdate?.tagName != update.tagName) {
-    // Not downloading → start fresh (DownloadManager handles partial resume).
     dm.reset();
   }
 
   await showDialog(
     context: context,
     barrierDismissible: true,
-    builder: (_) => _DownloadProgressDialog(update: update),
+    builder: (_) => DownloadProgressDialog(update: update),
   );
 }
 
 // ---------------------------------------------------------------------------
-// Download‑progress dialog (private)
+// Download progress dialog
 // ---------------------------------------------------------------------------
 
-class _DownloadProgressDialog extends StatefulWidget {
+class DownloadProgressDialog extends StatefulWidget {
   final AppUpdate update;
-  const _DownloadProgressDialog({required this.update});
+  const DownloadProgressDialog({super.key, required this.update});
 
   @override
-  State<_DownloadProgressDialog> createState() =>
-      _DownloadProgressDialogState();
+  State<DownloadProgressDialog> createState() => _DownloadProgressDialogState();
 }
 
-class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
+class _DownloadProgressDialogState extends State<DownloadProgressDialog>
     with WidgetsBindingObserver {
   final DownloadManager _dm = DownloadManager.instance;
   String? _error;
@@ -868,13 +785,11 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _dm.progress.addListener(_onProgress);
-    // Stop notification if it was showing (we're back in the dialog).
     _dm.hideNotification();
 
     if (_dm.isDownloading) {
-      // Re-attach to existing download – nothing to start.
+      // Re-attach to existing download
     } else if (_dm.completed) {
-      // Already done – close immediately.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) Navigator.of(context).pop();
       });
@@ -890,7 +805,6 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
     _dm.progress.removeListener(_onProgress);
     WidgetsBinding.instance.removeObserver(this);
 
-    // If still downloading when dialog is dismissed, show notification.
     if (_dm.isDownloading) {
       _dm.showNotification(widget.update);
     }
@@ -918,14 +832,12 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog>
     if (!mounted) return;
 
     if (_dm.completed) {
-      // Close dialog after a moment – installer was launched.
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) Navigator.of(context).pop();
       });
     } else if (_dm.error != null) {
       setState(() => _error = _dm.error);
     } else {
-      // Cancelled while dialog open – just close.
       Navigator.of(context).pop();
     }
   }
