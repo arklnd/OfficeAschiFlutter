@@ -13,8 +13,7 @@ class RangeAvailabilityCard extends StatelessWidget {
   final bool loading;
   final DateTime rangeFrom;
   final DateTime rangeTo;
-  final ValueChanged<DateTime> onRangeFromChanged;
-  final ValueChanged<DateTime> onRangeToChanged;
+  final void Function(DateTime from, DateTime to) onRangeChanged;
   final ValueChanged<String> onJumpToDate;
 
   const RangeAvailabilityCard({
@@ -23,8 +22,7 @@ class RangeAvailabilityCard extends StatelessWidget {
     required this.loading,
     required this.rangeFrom,
     required this.rangeTo,
-    required this.onRangeFromChanged,
-    required this.onRangeToChanged,
+    required this.onRangeChanged,
     required this.onJumpToDate,
   });
 
@@ -86,8 +84,7 @@ class RangeAvailabilityCard extends StatelessWidget {
       initialDateRange: DateTimeRange(start: rangeFrom, end: rangeTo),
     );
     if (range != null) {
-      onRangeFromChanged(range.start);
-      onRangeToChanged(range.end);
+      onRangeChanged(range.start, range.end);
     }
   }
 }
@@ -142,11 +139,7 @@ class _DateRangeChip extends StatelessWidget {
                 style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
               ),
               const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_drop_down,
-                size: 20,
-                color: cs.onSurfaceVariant,
-              ),
+              Icon(Icons.arrow_drop_down, size: 20, color: cs.onSurfaceVariant),
             ],
           ),
         ),
@@ -191,9 +184,9 @@ class _DayGrid extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8, top: 4),
             child: Text(
               entry.key,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: cs.primary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: cs.primary),
             ),
           ),
           // Day chips in a wrap
@@ -271,10 +264,7 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-        ),
+        Text(label, style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
       ],
     );
   }
@@ -300,12 +290,13 @@ class _DayChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dt = DateTime.parse(day.date);
-    final isWeekend = dt.weekday == DateTime.saturday ||
-        dt.weekday == DateTime.sunday;
+    final isWeekend =
+        dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday;
     final isFull = day.availableCount == 0 && day.totalSeats > 0;
     final hasAvailability = day.availableCount > 0;
-    final fillPct =
-        day.totalSeats > 0 ? (day.bookedCount / day.totalSeats) : 0.0;
+    final fillPct = day.totalSeats > 0
+        ? (day.bookedCount / day.totalSeats)
+        : 0.0;
 
     // M3-native color mapping
     Color ringColor;
@@ -315,9 +306,9 @@ class _DayChip extends StatelessWidget {
       bgColor = cs.errorContainer.withValues(alpha: isDark ? 0.3 : 0.5);
     } else if (hasAvailability) {
       ringColor = AppColors.greenBorder(isDark);
-      bgColor = AppColors.greenContainer(isDark).withValues(
-        alpha: isDark ? 0.3 : 0.5,
-      );
+      bgColor = AppColors.greenContainer(
+        isDark,
+      ).withValues(alpha: isDark ? 0.3 : 0.5);
     } else {
       ringColor = cs.outlineVariant;
       bgColor = cs.surfaceContainerHighest;
@@ -326,8 +317,7 @@ class _DayChip extends StatelessWidget {
     final dayLabel = DateFormat('E').format(dt);
 
     return Tooltip(
-      message:
-          '${day.bookedCount} booked, ${day.availableCount} available',
+      message: '${day.bookedCount} booked, ${day.availableCount} available',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -365,8 +355,7 @@ class _DayChip extends StatelessWidget {
                         CircularProgressIndicator(
                           value: fillPct,
                           strokeWidth: 3,
-                          backgroundColor:
-                              cs.onSurface.withValues(alpha: 0.08),
+                          backgroundColor: cs.onSurface.withValues(alpha: 0.08),
                           valueColor: AlwaysStoppedAnimation(ringColor),
                         ),
                         Text(

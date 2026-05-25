@@ -604,13 +604,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     }
   }
 
-  void _onRangeFromChanged(DateTime date) {
-    setState(() => _rangeFrom = date);
-    _loadRangeAvailability();
-  }
-
-  void _onRangeToChanged(DateTime date) {
-    setState(() => _rangeTo = date);
+  void _onRangeChanged(DateTime from, DateTime to) {
+    setState(() {
+      _rangeFrom = from;
+      _rangeTo = to;
+    });
     _loadRangeAvailability();
   }
 
@@ -745,19 +743,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              DateNavigator(
-                selectedDate: _selectedDate,
-                onPreviousDay: _goToPreviousDay,
-                onNextDay: _goToNextDay,
-                onToday: _isToday ? null : _goToToday,
-                onDatePicked: (picked) {
-                  setState(() => _selectedDate = picked);
-                  _loadAvailability();
-                },
-              ),
-              const SizedBox(height: 16),
-              AvailabilityStats(availability: displayAvail),
-              const SizedBox(height: 12),
               // Range action buttons
               Center(
                 child: ConstrainedBox(
@@ -804,8 +789,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                   loading: _rangeLoading,
                   rangeFrom: _rangeFrom,
                   rangeTo: _rangeTo,
-                  onRangeFromChanged: _onRangeFromChanged,
-                  onRangeToChanged: _onRangeToChanged,
+                  onRangeChanged: _onRangeChanged,
                   onJumpToDate: _jumpToDate,
                 ),
                 const SizedBox(height: 12),
@@ -818,6 +802,19 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                 ),
                 const SizedBox(height: 12),
               ],
+              DateNavigator(
+                selectedDate: _selectedDate,
+                onPreviousDay: _goToPreviousDay,
+                onNextDay: _goToNextDay,
+                onToday: _isToday ? null : _goToToday,
+                onDatePicked: (picked) {
+                  setState(() => _selectedDate = picked);
+                  _loadAvailability();
+                },
+              ),
+              const SizedBox(height: 16),
+              AvailabilityStats(availability: displayAvail),
+              const SizedBox(height: 12),
               _availabilityLoading
                   ? const Center(
                       child: Padding(
