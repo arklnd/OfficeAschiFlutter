@@ -14,9 +14,12 @@ import '../widgets/manage_seats_card.dart';
 import '../widgets/pending_approvals_card.dart';
 import '../widgets/member_list_card.dart';
 import '../widgets/danger_zone_card.dart';
+import '../widgets/range_availability_card.dart';
+import '../widgets/range_booking_result_card.dart';
 import '../dialogs/totp_prompt_dialog.dart';
 import '../dialogs/join_team_dialog.dart';
 import '../dialogs/book_seat_dialog.dart';
+import '../dialogs/range_book_dialog.dart';
 
 class TeamDetailScreen extends StatefulWidget {
   final int teamId;
@@ -44,6 +47,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   final TextEditingController _seatLabelCtrl = TextEditingController();
   int? _currentReporteeId;
   late final StreamSubscription _recoverySub;
+
+  // Range availability state
+  bool _showRangeView = false;
+  RangeAvailabilityResponse? _rangeAvailability;
+  bool _rangeLoading = false;
+  DateTime _rangeFrom = DateTime.now();
+  DateTime _rangeTo = DateTime.now().add(const Duration(days: 13));
+  RangeBookingResponse? _lastRangeBookResult;
 
   List<ReporteeResponse> get _approvedReportees =>
       _reportees.where((r) => r.isApproved).toList();
@@ -544,6 +555,84 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   }
 
   // ---------------------------------------------------------------------------
+  // Range view & booking
+  // ---------------------------------------------------------------------------
+
+  void _toggleRangeView() {
+    setState(() => _showRangeView = !_showRangeView);
+    if (_showRangeView && _rangeAvailability == null) {
+      _loadRangeAvailability();
+    }
+  }
+
+  Future<void> _loadRangeAvailability() async {
+    setState(() => _rangeLoading = true);
+    try {
+      final fromStr = DateFormat('yyyy-MM-dd').format(_rangeFrom);
+      final toStr = DateFormat('yyyy-MM-dd').format(_rangeTo);
+      final result = await _api.getAvailabilityRange(
+        widget.teamId,
+        fromStr,
+        toStr,
+      );
+      if (mounted) {
+        setState(() {
+          _rangeAvailability = result;
+          _rangeLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _rangeLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load range availability: $e')),
+        );
+      }
+    }
+  }
+
+  void _onRangeFromChanged(DateTime date) {
+    setState(() => _rangeFrom = date);
+    _loadRangeAvailability();
+  }
+
+  void _onRangeToChanged(DateTime date) {
+    setState(() => _rangeTo = date);
+    _loadRangeAvailability();
+  }
+
+  void _jumpToDate(String dateStr) {
+    setState(() {
+      _selectedDate = DateTime.parse(dateStr);
+      _showRangeView = false;
+    });
+    _loadAvailability();
+  }
+
+  void _openRangeBookDialog() async {
+    final result = await showRangeBookDialog(
+      context,
+      seats: _seats,
+      availableReportees: _approvedReportees,
+      currentReporteeId: _currentReporteeId,
+      defaultDate: _selectedDate,
+      clipboardOtp: clipboardOtp,
+      pasteClipboardCode: pasteClipboardCode,
+      launchAuthenticator: launchAuthenticator,
+    );
+    resetClipboardOtp();
+    if (result != null && mounted) {
+      setState(() => _lastRangeBookResult = result);
+      _loadAvailability();
+      if (_showRangeView) _loadRangeAvailability();
+    }
+  }
+
+  void _dismissRangeResult() {
+    setState(() => _lastRangeBookResult = null);
+  }
+
+  // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
 
@@ -632,6 +721,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     final allBooked = (displayAvail?.availableCount ?? 1) == 0 &&
         (displayAvail?.totalSeats ?? 0) > 0;
     final waitlist = displayAvail?.waitlist ?? [];
+    final cs = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
       onRefresh: _loadAvailability,
@@ -650,7 +740,61 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           ),
           const SizedBox(height: 16),
           AvailabilityStats(availability: displayAvail),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          // Range action buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _toggleRangeView,
+                  icon: Icon(
+                    _showRangeView
+                        ? Icons.calendar_today
+                        : Icons.date_range,
+                    size: 18,
+                  ),
+                  label: Text(
+                    _showRangeView ? 'Hide Range' : 'Range View',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: _showRangeView
+                        ? BorderSide(color: cs.primary, width: 1.5)
+                        : null,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _openRangeBookDialog,
+                  icon: const Icon(Icons.calendar_month, size: 18),
+                  label: const Text('Book Range'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Range availability card
+          if (_showRangeView) ...[
+            RangeAvailabilityCard(
+              rangeAvailability: _rangeAvailability,
+              loading: _rangeLoading,
+              rangeFrom: _rangeFrom,
+              rangeTo: _rangeTo,
+              onRangeFromChanged: _onRangeFromChanged,
+              onRangeToChanged: _onRangeToChanged,
+              onJumpToDate: _jumpToDate,
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Range booking result card
+          if (_lastRangeBookResult != null) ...[
+            RangeBookingResultCard(
+              result: _lastRangeBookResult!,
+              onDismiss: _dismissRangeResult,
+            ),
+            const SizedBox(height: 12),
+          ],
           _availabilityLoading
               ? const Center(
                   child: Padding(

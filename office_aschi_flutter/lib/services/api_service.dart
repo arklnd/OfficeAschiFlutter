@@ -310,6 +310,22 @@ class ApiService with WidgetsBindingObserver {
     throw Exception('Failed to load availability');
   }
 
+  Future<RangeAvailabilityResponse> getAvailabilityRange(
+    int teamId,
+    String from,
+    String to,
+  ) async {
+    final response = await http.get(
+      Uri.parse(
+        '$baseUrl/bookings/availability/$teamId/range?from=$from&to=$to',
+      ),
+    );
+    if (response.statusCode == 200) {
+      return RangeAvailabilityResponse.fromJson(json.decode(response.body));
+    }
+    throw Exception('Failed to load range availability');
+  }
+
   Future<BookingResponse> bookSeat(
     int reporteeId,
     int seatId,
@@ -330,6 +346,30 @@ class ApiService with WidgetsBindingObserver {
     }
     final err = json.decode(response.body);
     throw Exception(err['error'] ?? 'Failed to book seat');
+  }
+
+  Future<RangeBookingResponse> bookSeatRange(
+    int reporteeId,
+    int seatId,
+    String from,
+    String to,
+    String totpCode,
+  ) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/bookings/range'),
+      headers: _totpHeaders('reportee', reporteeId, totpCode),
+      body: jsonEncode({
+        'reporteeId': reporteeId,
+        'seatId': seatId,
+        'from': from,
+        'to': to,
+      }),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return RangeBookingResponse.fromJson(json.decode(response.body));
+    }
+    final err = json.decode(response.body);
+    throw Exception(err['error'] ?? 'Failed to book seat range');
   }
 
   Future<void> cancelBooking(

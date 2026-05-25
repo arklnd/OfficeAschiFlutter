@@ -198,6 +198,124 @@ class SeatView {
   });
 }
 
+// --- Range Availability ---
+class DateAvailabilitySummary {
+  final String date;
+  final int totalSeats;
+  final int bookedCount;
+  final int availableCount;
+  final int waitlistedCount;
+
+  DateAvailabilitySummary({
+    required this.date,
+    required this.totalSeats,
+    required this.bookedCount,
+    required this.availableCount,
+    required this.waitlistedCount,
+  });
+
+  factory DateAvailabilitySummary.fromJson(Map<String, dynamic> json) =>
+      DateAvailabilitySummary(
+        date: json['date'],
+        totalSeats: json['totalSeats'],
+        bookedCount: json['bookedCount'],
+        availableCount: json['availableCount'],
+        waitlistedCount: json['waitlistedCount'],
+      );
+}
+
+class RangeAvailabilityResponse {
+  final int teamId;
+  final String from;
+  final String to;
+  final List<DateAvailabilitySummary> days;
+
+  RangeAvailabilityResponse({
+    required this.teamId,
+    required this.from,
+    required this.to,
+    required this.days,
+  });
+
+  factory RangeAvailabilityResponse.fromJson(Map<String, dynamic> json) =>
+      RangeAvailabilityResponse(
+        teamId: json['teamId'],
+        from: json['from'],
+        to: json['to'],
+        days: (json['days'] as List)
+            .map((d) => DateAvailabilitySummary.fromJson(d))
+            .toList(),
+      );
+}
+
+// --- Range Booking ---
+class RangeBookingResult {
+  final String date;
+  final bool success;
+  final String status;
+  final int? bookingId;
+  final String? error;
+
+  RangeBookingResult({
+    required this.date,
+    required this.success,
+    required this.status,
+    this.bookingId,
+    this.error,
+  });
+
+  factory RangeBookingResult.fromJson(Map<String, dynamic> json) =>
+      RangeBookingResult(
+        date: json['date'],
+        success: json['success'],
+        status: json['status'],
+        bookingId: json['bookingId'],
+        error: json['error'],
+      );
+}
+
+class RangeBookingResponse {
+  final int seatId;
+  final String seatLabel;
+  final int reporteeId;
+  final String reporteeName;
+  final String from;
+  final String to;
+  final int confirmedCount;
+  final int waitlistedCount;
+  final int failedCount;
+  final List<RangeBookingResult> results;
+
+  RangeBookingResponse({
+    required this.seatId,
+    required this.seatLabel,
+    required this.reporteeId,
+    required this.reporteeName,
+    required this.from,
+    required this.to,
+    required this.confirmedCount,
+    required this.waitlistedCount,
+    required this.failedCount,
+    required this.results,
+  });
+
+  factory RangeBookingResponse.fromJson(Map<String, dynamic> json) =>
+      RangeBookingResponse(
+        seatId: json['seatId'],
+        seatLabel: json['seatLabel'],
+        reporteeId: json['reporteeId'],
+        reporteeName: json['reporteeName'],
+        from: json['from'],
+        to: json['to'],
+        confirmedCount: json['confirmedCount'],
+        waitlistedCount: json['waitlistedCount'],
+        failedCount: json['failedCount'],
+        results: (json['results'] as List)
+            .map((r) => RangeBookingResult.fromJson(r))
+            .toList(),
+      );
+}
+
 // --- All Seats Overview ---
 class SeatOverviewBooking {
   final int reporteeId;
