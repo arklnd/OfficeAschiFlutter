@@ -84,6 +84,15 @@ class RangeAvailabilityCard extends StatelessWidget {
       initialDateRange: DateTimeRange(start: rangeFrom, end: rangeTo),
     );
     if (range != null) {
+      final days = range.end.difference(range.start).inDays + 1;
+      if (days > 90) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Date range cannot exceed 90 days')),
+          );
+        }
+        return;
+      }
       onRangeChanged(range.start, range.end);
     }
   }

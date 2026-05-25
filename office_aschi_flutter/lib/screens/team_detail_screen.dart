@@ -1026,7 +1026,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                   subtitle: 'Removes all seats, members, and bookings.',
                   onAction: _deleteTeam,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 32),
               ],
             ),
           ),
