@@ -362,6 +362,9 @@ class DownloadManager {
   double _lastProgress = 0;
   DateTime _lastSpeedSample = DateTime.now();
 
+  bool _foregroundServiceRunning = false;
+  DateTime _lastNotifUpdate = DateTime.now();
+
   String get remainingFormatted {
     if (_speedBps <= 0 || activeUpdate == null) return '';
     final remainingBytes = (1.0 - progress.value) * activeUpdate!.sizeBytes;
@@ -388,8 +391,6 @@ class DownloadManager {
     }
     return '${(_speedBps / 1024).toStringAsFixed(0)} KB/s';
   }
-
-  bool _notificationActive = false;
 
   FlutterLocalNotificationsPlugin? _notifPlugin;
   bool _notifInitialized = false;
@@ -455,6 +456,10 @@ class DownloadManager {
     _speedBps = 0;
     _lastProgress = 0;
     _lastSpeedSample = DateTime.now();
+    _lastNotifUpdate = DateTime.now();
+
+    // Start foreground service to maintain download speed in background
+    await _startForeground(update);
 
     try {
       await UpdateService.downloadAndInstall(
@@ -462,7 +467,7 @@ class DownloadManager {
         onProgress: (p) {
           _updateSpeed(p, update.sizeBytes);
           progress.value = p;
-          _updateNotificationIfActive(update, p);
+          _throttledNotifUpdate(update, p);
         },
         isCancelled: () => _cancelled,
       );
@@ -473,21 +478,18 @@ class DownloadManager {
       }
     } finally {
       _downloading = false;
-      if (_notificationActive) {
-        if (completed) {
-          await _showCompletedNotification(update);
-        } else if (_cancelled) {
-          await _dismissNotification();
-        } else {
-          await _showFailedNotification(update);
-        }
+      await _stopForeground();
+      if (completed) {
+        await _showCompletedNotification(update);
+      } else if (!_cancelled) {
+        await _showFailedNotification(update);
       }
     }
   }
 
   void cancel() {
     _cancelled = true;
-    _dismissNotification();
+    _stopForeground();
   }
 
   void reset() {
@@ -513,19 +515,73 @@ class DownloadManager {
     }
   }
 
-  void showNotification(AppUpdate update) {
-    if (!_downloading) return;
-    _notificationActive = true;
-    _updateNotificationIfActive(update, progress.value);
+  // ---- Foreground service for background download speed ----
+
+  Future<void> _startForeground(AppUpdate update) async {
+    if (kIsWeb) return;
+    try {
+      await initNotifications();
+      final androidPlugin = _getNotifPluginSync()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin == null) return;
+
+      await androidPlugin.startForegroundService(
+        _downloadNotifId,
+        'Downloading update v${update.version}',
+        'Starting download\u2026',
+         notificationDetails: AndroidNotificationDetails(
+          _downloadChannelId,
+          _downloadChannelName,
+          channelDescription: 'Shows download progress for app updates',
+          importance: Importance.low,
+          priority: Priority.low,
+          onlyAlertOnce: true,
+          ongoing: true,
+          autoCancel: false,
+          showProgress: true,
+          maxProgress: 100,
+          progress: 0,
+          actions: [
+            const AndroidNotificationAction(
+              'cancel_download',
+              'Cancel',
+              showsUserInterface: false,
+            ),
+          ],
+        ),
+        payload: 'download_progress',
+        foregroundServiceTypes: {AndroidServiceForegroundType.foregroundServiceTypeDataSync},
+      );
+      _foregroundServiceRunning = true;
+    } catch (e) {
+      debugPrint('Failed to start foreground service: $e');
+    }
   }
 
-  Future<void> hideNotification() async {
-    _notificationActive = false;
-    await _dismissNotification();
+  Future<void> _stopForeground() async {
+    if (!_foregroundServiceRunning) return;
+    if (kIsWeb) return;
+    try {
+      final androidPlugin = _getNotifPluginSync()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin?.stopForegroundService();
+    } catch (e) {
+      debugPrint('Failed to stop foreground service: $e');
+    }
+    _foregroundServiceRunning = false;
   }
 
-  Future<void> _updateNotificationIfActive(AppUpdate update, double p) async {
-    if (!_notificationActive) return;
+  void _throttledNotifUpdate(AppUpdate update, double p) {
+    final now = DateTime.now();
+    if (now.difference(_lastNotifUpdate).inMilliseconds < 500) return;
+    _lastNotifUpdate = now;
+    _updateForegroundNotification(update, p);
+  }
+
+  Future<void> _updateForegroundNotification(AppUpdate update, double p) async {
+    if (!_foregroundServiceRunning) return;
     if (kIsWeb) return;
 
     final plugin = _getNotifPluginSync();
@@ -536,10 +592,10 @@ class DownloadManager {
     final remaining = remainingFormatted;
     final speed = speedFormatted;
     final subText = [
-      '$dlMb / $totalMb MB — $percent%',
+      '$dlMb / $totalMb MB \u2014 $percent%',
       if (remaining.isNotEmpty) remaining,
       if (speed.isNotEmpty) speed,
-    ].join(' · ');
+    ].join(' \u00B7 ');
 
     await plugin.show(
       _downloadNotifId,
@@ -572,7 +628,6 @@ class DownloadManager {
   }
 
   Future<void> _showCompletedNotification(AppUpdate update) async {
-    _notificationActive = false;
     if (kIsWeb) return;
     final plugin = _getNotifPluginSync();
     await plugin.show(
@@ -591,7 +646,6 @@ class DownloadManager {
   }
 
   Future<void> _showFailedNotification(AppUpdate update) async {
-    _notificationActive = false;
     if (kIsWeb) return;
     final plugin = _getNotifPluginSync();
     await plugin.show(
@@ -607,13 +661,6 @@ class DownloadManager {
         ),
       ),
     );
-  }
-
-  Future<void> _dismissNotification() async {
-    _notificationActive = false;
-    if (kIsWeb) return;
-    final plugin = _getNotifPluginSync();
-    await plugin.cancel(_downloadNotifId);
   }
 }
 
@@ -785,7 +832,6 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _dm.progress.addListener(_onProgress);
-    _dm.hideNotification();
 
     if (_dm.isDownloading) {
       // Re-attach to existing download
@@ -804,10 +850,6 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog>
   void dispose() {
     _dm.progress.removeListener(_onProgress);
     WidgetsBinding.instance.removeObserver(this);
-
-    if (_dm.isDownloading) {
-      _dm.showNotification(widget.update);
-    }
     super.dispose();
   }
 
