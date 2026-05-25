@@ -782,18 +782,26 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              // Range availability card
-              if (_showRangeView) ...[
-                RangeAvailabilityCard(
-                  rangeAvailability: _rangeAvailability,
-                  loading: _rangeLoading,
-                  rangeFrom: _rangeFrom,
-                  rangeTo: _rangeTo,
-                  onRangeChanged: _onRangeChanged,
-                  onJumpToDate: _jumpToDate,
+              // Range availability card — kept alive, collapsed when hidden
+              ClipRect(
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  heightFactor: _showRangeView ? 1.0 : 0.0,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: RangeAvailabilityCard(
+                      rangeAvailability: _rangeAvailability,
+                      loading: _rangeLoading,
+                      rangeFrom: _rangeFrom,
+                      rangeTo: _rangeTo,
+                      onRangeChanged: _onRangeChanged,
+                      onJumpToDate: _jumpToDate,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 12),
-              ],
+              ),
               // Range booking result card
               if (_lastRangeBookResult != null) ...[
                 RangeBookingResultCard(
