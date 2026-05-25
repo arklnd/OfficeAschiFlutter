@@ -215,21 +215,25 @@ Future<RangeBookingResponse?> showRangeBookDialog(
                   valueListenable: clipboardOtp,
                   builder: (context, code, _) {
                     if (code == null) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: OutlinedButton.icon(
-                        onPressed: () => pasteClipboardCode(codeCtrl, code),
-                        icon: const Icon(Icons.content_paste, size: 18),
-                        label: Text('Paste code: $code'),
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: OutlinedButton.icon(
+                          onPressed: () => pasteClipboardCode(codeCtrl, code),
+                          icon: const Icon(Icons.content_paste, size: 18),
+                          label: Text('Paste code: $code'),
+                        ),
                       ),
                     );
                   },
                 ),
                 const SizedBox(height: 4),
-                ElevatedButton.icon(
-                  onPressed: () => launchAuthenticator(ctx),
-                  icon: const Icon(Icons.open_in_new, size: 18),
-                  label: const Text('Open Authenticator App'),
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: () => launchAuthenticator(ctx),
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: const Text('Open Authenticator App'),
+                  ),
                 ),
               ],
             ),
