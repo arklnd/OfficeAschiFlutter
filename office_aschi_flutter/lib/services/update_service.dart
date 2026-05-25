@@ -427,8 +427,21 @@ class DownloadManager {
   }
 
   void _onNotificationTap(NotificationResponse response) {
+    if (response.payload == 'download_complete') {
+      _installCompletedUpdate();
+      return;
+    }
     if (response.payload != 'download_progress') return;
     _reopenDownloadDialog();
+  }
+
+  Future<void> _installCompletedUpdate() async {
+    final update = activeUpdate;
+    if (update == null) return;
+    final apk = await UpdateService.getExistingApk(update);
+    if (apk != null) {
+      await UpdateService.installApk(apk);
+    }
   }
 
   void _reopenDownloadDialog() {
@@ -648,6 +661,7 @@ class DownloadManager {
           color: Color(0xFF673AB7), // deepPurple
         ),
       ),
+      payload: 'download_complete',
     );
   }
 
@@ -668,6 +682,7 @@ class DownloadManager {
           color: Color(0xFF673AB7), // deepPurple
         ),
       ),
+      payload: 'download_progress',
     );
   }
 }
