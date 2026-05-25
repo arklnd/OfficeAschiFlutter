@@ -156,5 +156,14 @@ ThemeData buildAppTheme(ColorScheme colorScheme) {
       labelColor: colorScheme.primary,
       unselectedLabelColor: colorScheme.onSurfaceVariant,
     ),
+    datePickerTheme: DatePickerThemeData(
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      headerBackgroundColor: colorScheme.primaryContainer,
+      headerForegroundColor: colorScheme.onPrimaryContainer,
+      rangePickerBackgroundColor: colorScheme.surfaceContainerHigh,
+      rangePickerHeaderBackgroundColor: colorScheme.primaryContainer,
+      rangePickerHeaderForegroundColor: colorScheme.onPrimaryContainer,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+    ),
   );
 }

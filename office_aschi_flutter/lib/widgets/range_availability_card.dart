@@ -108,15 +108,47 @@ class _DateRangeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final days = rangeTo.difference(rangeFrom).inDays + 1;
 
-    return ActionChip(
-      avatar: Icon(Icons.calendar_today, size: 16, color: cs.primary),
-      label: Text(
-        '${DateFormat('MMM d').format(rangeFrom)} - '
-        '${DateFormat('MMM d, y').format(rangeTo)}  ($days days)',
+    // Use input-field styling for proper light/dark contrast.
+    return Material(
+      color: cs.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cs.outline),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.calendar_today, size: 18, color: cs.primary),
+              const SizedBox(width: 10),
+              Text(
+                '${DateFormat('MMM d').format(rangeFrom)} – '
+                '${DateFormat('MMM d, y').format(rangeTo)}',
+                style: tt.bodyMedium,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '($days days)',
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_drop_down,
+                size: 20,
+                color: cs.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
       ),
-      onPressed: onTap,
     );
   }
 }
