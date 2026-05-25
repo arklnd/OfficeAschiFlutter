@@ -53,10 +53,12 @@ class RangeAvailabilityCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             // Date range picker chip
-            _DateRangeChip(
-              rangeFrom: rangeFrom,
-              rangeTo: rangeTo,
-              onTap: () => _pickRange(context),
+            Center(
+              child: _DateRangeChip(
+                rangeFrom: rangeFrom,
+                rangeTo: rangeTo,
+                onTap: () => _pickRange(context),
+              ),
             ),
             const SizedBox(height: 16),
             // Content
