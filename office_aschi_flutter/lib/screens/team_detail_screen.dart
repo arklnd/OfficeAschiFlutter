@@ -955,7 +955,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 900),
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               children: [
                 if (isWide)
                   Row(
@@ -1021,7 +1021,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                   subtitle: 'Removes all seats, members, and bookings.',
                   onAction: _deleteTeam,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 10),
               ],
             ),
           ),
