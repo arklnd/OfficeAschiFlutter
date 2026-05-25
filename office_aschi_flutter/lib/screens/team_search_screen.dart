@@ -142,9 +142,9 @@ class _TeamSearchScreenState extends State<TeamSearchScreen>
             padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
             child: Text(
               'Office Aschi',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(color: cs.onSurfaceVariant),
             ),
           ),
           const NavigationDrawerDestination(
@@ -247,13 +247,10 @@ class _TeamSearchScreenState extends State<TeamSearchScreen>
       );
     }
 
-    return ListView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-      itemCount: _teams.length,
-      itemBuilder: (context, index) {
-        final team = _teams[index];
-        return TeamCard(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 600;
+        Widget teamItem(TeamSearchResult team) => TeamCard(
           team: team,
           onTap: () {
             Navigator.push(
@@ -263,6 +260,33 @@ class _TeamSearchScreenState extends State<TeamSearchScreen>
               ),
             );
           },
+        );
+
+        if (isWide) {
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: GridView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: constraints.maxWidth > 900 ? 3 : 2,
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 2.4,
+                ),
+                itemCount: _teams.length,
+                itemBuilder: (context, index) => teamItem(_teams[index]),
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+          itemCount: _teams.length,
+          itemBuilder: (context, index) => teamItem(_teams[index]),
         );
       },
     );

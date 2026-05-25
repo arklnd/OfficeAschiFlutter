@@ -67,181 +67,189 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ValueListenableBuilder<ThemeMode>(
         valueListenable: themeNotifier,
         builder: (context, mode, _) {
-          return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            children: [
-              // Appearance section
-              const SectionHeader(title: 'Appearance'),
-              Card(
-                child: Column(
-                  children: [
-                    _ThemeTile(
-                      icon: Icons.brightness_auto,
-                      title: 'System',
-                      subtitle: 'Follow device theme',
-                      selected: mode == ThemeMode.system,
-                      onTap: () => setThemeMode(ThemeMode.system),
-                    ),
-                    _ThemeTile(
-                      icon: Icons.light_mode,
-                      title: 'Light',
-                      subtitle: 'Always use light theme',
-                      selected: mode == ThemeMode.light,
-                      onTap: () => setThemeMode(ThemeMode.light),
-                    ),
-                    _ThemeTile(
-                      icon: Icons.dark_mode,
-                      title: 'Dark',
-                      subtitle: 'Always use dark theme',
-                      selected: mode == ThemeMode.dark,
-                      onTap: () => setThemeMode(ThemeMode.dark),
-                    ),
-                  ],
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: dynamicColorNotifier,
-                  builder: (context, useDynamic, _) {
-                    return SwitchListTile(
-                      secondary: IconBox(
-                        icon: Icons.palette,
-                        colorScheme: cs,
-                      ),
-                      title: const Text('Dynamic color'),
-                      subtitle: const Text(
-                        'Use wallpaper colors (Android 12+)',
-                      ),
-                      value: useDynamic,
-                      onChanged: (v) => setDynamicColor(v),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Updates section (Android only)
-              if (!kIsWeb) ...[
-                const SectionHeader(title: 'Updates'),
-                Card(
-                  child: Column(
-                    children: [
-                      SwitchListTile(
-                        secondary: IconBox(
-                          icon: Icons.update,
-                          colorScheme: cs,
+                children: [
+                  // Appearance section
+                  const SectionHeader(title: 'Appearance'),
+                  Card(
+                    child: Column(
+                      children: [
+                        _ThemeTile(
+                          icon: Icons.brightness_auto,
+                          title: 'System',
+                          subtitle: 'Follow device theme',
+                          selected: mode == ThemeMode.system,
+                          onTap: () => setThemeMode(ThemeMode.system),
                         ),
-                        title: const Text('Automatic update check'),
-                        subtitle: const Text(
-                          'Check for updates when the app opens or using background updates.',
+                        _ThemeTile(
+                          icon: Icons.light_mode,
+                          title: 'Light',
+                          subtitle: 'Always use light theme',
+                          selected: mode == ThemeMode.light,
+                          onTap: () => setThemeMode(ThemeMode.light),
                         ),
-                        value: _autoUpdate,
-                        onChanged: _toggleAutoUpdate,
-                      ),
-                      ListTile(
-                        leading: IconBox(
-                          icon: Icons.system_update,
-                          colorScheme: cs,
+                        _ThemeTile(
+                          icon: Icons.dark_mode,
+                          title: 'Dark',
+                          subtitle: 'Always use dark theme',
+                          selected: mode == ThemeMode.dark,
+                          onTap: () => setThemeMode(ThemeMode.dark),
                         ),
-                        title: const Text('Check for updates'),
-                        subtitle: Text('Channel: ${UpdateService.channel}'),
-                        trailing: Icon(
-                          Icons.chevron_right,
-                          color: cs.onSurfaceVariant,
-                        ),
-                        onTap: () => _checkForUpdate(context),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
-              // About section
-              const SectionHeader(title: 'About'),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: IconBox(
-                        icon: Icons.info_outline,
-                        colorScheme: cs,
-                      ),
-                      title: const Text('Office Aschi'),
-                      subtitle: Text(
-                        appVersion == 'APP_VERSION_PLACEHOLDER'
-                            ? 'dev (${UpdateService.channel})'
-                            : 'v$appVersion (${UpdateService.channel})',
+                  const SizedBox(height: 12),
+                  Card(
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: dynamicColorNotifier,
+                      builder: (context, useDynamic, _) {
+                        return SwitchListTile(
+                          secondary: IconBox(
+                            icon: Icons.palette,
+                            colorScheme: cs,
+                          ),
+                          title: const Text('Dynamic color'),
+                          subtitle: const Text(
+                            'Use wallpaper colors (Android 12+)',
+                          ),
+                          value: useDynamic,
+                          onChanged: (v) => setDynamicColor(v),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Updates section (Android only)
+                  if (!kIsWeb) ...[
+                    const SectionHeader(title: 'Updates'),
+                    Card(
+                      child: Column(
+                        children: [
+                          SwitchListTile(
+                            secondary: IconBox(
+                              icon: Icons.update,
+                              colorScheme: cs,
+                            ),
+                            title: const Text('Automatic update check'),
+                            subtitle: const Text(
+                              'Check for updates when the app opens or using background updates.',
+                            ),
+                            value: _autoUpdate,
+                            onChanged: _toggleAutoUpdate,
+                          ),
+                          ListTile(
+                            leading: IconBox(
+                              icon: Icons.system_update,
+                              colorScheme: cs,
+                            ),
+                            title: const Text('Check for updates'),
+                            subtitle: Text('Channel: ${UpdateService.channel}'),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: cs.onSurfaceVariant,
+                            ),
+                            onTap: () => _checkForUpdate(context),
+                          ),
+                        ],
                       ),
                     ),
-                    ListTile(
-                      leading: IconBox(icon: Icons.code, colorScheme: cs),
-                      title: const Text('Built with Flutter'),
-                      subtitle: const Text('Cross-platform seat booking'),
-                    ),
+                    const SizedBox(height: 24),
                   ],
-                ),
+                  // About section
+                  const SectionHeader(title: 'About'),
+                  Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: IconBox(
+                            icon: Icons.info_outline,
+                            colorScheme: cs,
+                          ),
+                          title: const Text('Office Aschi'),
+                          subtitle: Text(
+                            appVersion == 'APP_VERSION_PLACEHOLDER'
+                                ? 'dev (${UpdateService.channel})'
+                                : 'v$appVersion (${UpdateService.channel})',
+                          ),
+                        ),
+                        ListTile(
+                          leading: IconBox(icon: Icons.code, colorScheme: cs),
+                          title: const Text('Built with Flutter'),
+                          subtitle: const Text('Cross-platform seat booking'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // GitHub section
+                  const SectionHeader(title: 'GitHub'),
+                  Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: IconBox(icon: Icons.source, colorScheme: cs),
+                          title: const Text('Source Code'),
+                          subtitle: const Text('arklnd/OfficeAschiFlutter'),
+                          trailing: Icon(
+                            Icons.open_in_new,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          onTap: () => launchUrl(
+                            Uri.parse(
+                              'https://github.com/arklnd/OfficeAschiFlutter',
+                            ),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                        ListTile(
+                          leading: IconBox(
+                            icon: Icons.bug_report,
+                            colorScheme: cs,
+                          ),
+                          title: const Text('Report an Issue'),
+                          subtitle: const Text('Bugs & feature requests'),
+                          trailing: Icon(
+                            Icons.open_in_new,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          onTap: () => launchUrl(
+                            Uri.parse(
+                              'https://github.com/arklnd/OfficeAschiFlutter/issues',
+                            ),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                        ListTile(
+                          leading: IconBox(
+                            icon: Icons.new_releases_outlined,
+                            colorScheme: cs,
+                          ),
+                          title: const Text('Releases'),
+                          subtitle: const Text('Download latest versions'),
+                          trailing: Icon(
+                            Icons.open_in_new,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          onTap: () => launchUrl(
+                            Uri.parse(
+                              'https://github.com/arklnd/OfficeAschiFlutter/releases',
+                            ),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              // GitHub section
-              const SectionHeader(title: 'GitHub'),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: IconBox(icon: Icons.source, colorScheme: cs),
-                      title: const Text('Source Code'),
-                      subtitle: const Text('arklnd/OfficeAschiFlutter'),
-                      trailing: Icon(
-                        Icons.open_in_new,
-                        color: cs.onSurfaceVariant,
-                      ),
-                      onTap: () => launchUrl(
-                        Uri.parse(
-                          'https://github.com/arklnd/OfficeAschiFlutter',
-                        ),
-                        mode: LaunchMode.externalApplication,
-                      ),
-                    ),
-                    ListTile(
-                      leading: IconBox(
-                        icon: Icons.bug_report,
-                        colorScheme: cs,
-                      ),
-                      title: const Text('Report an Issue'),
-                      subtitle: const Text('Bugs & feature requests'),
-                      trailing: Icon(
-                        Icons.open_in_new,
-                        color: cs.onSurfaceVariant,
-                      ),
-                      onTap: () => launchUrl(
-                        Uri.parse(
-                          'https://github.com/arklnd/OfficeAschiFlutter/issues',
-                        ),
-                        mode: LaunchMode.externalApplication,
-                      ),
-                    ),
-                    ListTile(
-                      leading: IconBox(
-                        icon: Icons.new_releases_outlined,
-                        colorScheme: cs,
-                      ),
-                      title: const Text('Releases'),
-                      subtitle: const Text('Download latest versions'),
-                      trailing: Icon(
-                        Icons.open_in_new,
-                        color: cs.onSurfaceVariant,
-                      ),
-                      onTap: () => launchUrl(
-                        Uri.parse(
-                          'https://github.com/arklnd/OfficeAschiFlutter/releases',
-                        ),
-                        mode: LaunchMode.externalApplication,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           );
         },
       ),

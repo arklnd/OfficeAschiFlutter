@@ -16,48 +16,69 @@ class TeamCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
-        leading: CircleAvatar(
-          backgroundColor: cs.primary,
-          child: Text(
-            team.name[0].toUpperCase(),
-            style: TextStyle(
-              color: cs.onPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: cs.primary,
+                child: Text(
+                  team.name[0].toUpperCase(),
+                  style: TextStyle(
+                    color: cs.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      team.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      children: [
+                        Chip(
+                          label: Text('${team.seatCount} seats'),
+                          backgroundColor: cs.primaryContainer,
+                          labelStyle: TextStyle(color: cs.onPrimaryContainer),
+                          side: BorderSide.none,
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        Chip(
+                          label: Text('${team.memberCount} members'),
+                          backgroundColor: AppColors.greenContainer(isDark),
+                          labelStyle: TextStyle(
+                            color: AppColors.greenText(isDark),
+                          ),
+                          side: BorderSide.none,
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right),
+            ],
           ),
         ),
-        title: Text(
-          team.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Wrap(
-          spacing: 6,
-          children: [
-            Chip(
-              label: Text('${team.seatCount} seats'),
-              backgroundColor: cs.primaryContainer,
-              labelStyle: TextStyle(color: cs.onPrimaryContainer),
-              side: BorderSide.none,
-              visualDensity: VisualDensity.compact,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            Chip(
-              label: Text('${team.memberCount} members'),
-              backgroundColor: AppColors.greenContainer(isDark),
-              labelStyle: TextStyle(color: AppColors.greenText(isDark)),
-              side: BorderSide.none,
-              visualDensity: VisualDensity.compact,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ],
-        ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
       ),
     );
   }

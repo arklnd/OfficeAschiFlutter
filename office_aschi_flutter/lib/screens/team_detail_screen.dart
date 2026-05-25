@@ -30,7 +30,10 @@ class TeamDetailScreen extends StatefulWidget {
 }
 
 class _TeamDetailScreenState extends State<TeamDetailScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver, ClipboardOtpMixin {
+    with
+        SingleTickerProviderStateMixin,
+        WidgetsBindingObserver,
+        ClipboardOtpMixin {
   final ApiService _api = ApiService();
   late TabController _tabController;
 
@@ -38,7 +41,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   List<SeatResponse> _seats = [];
   List<ReporteeResponse> _reportees = [];
   AvailabilityResponse? _availability;
-  AvailabilityResponse? _lastAvailability; // kept during refresh for flicker-free UI
+  AvailabilityResponse?
+  _lastAvailability; // kept during refresh for flicker-free UI
   bool _loading = true;
   bool _availabilityLoading = false;
   bool _notFound = false;
@@ -197,7 +201,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   // Actions (business logic delegated to dialogs / api)
   // ---------------------------------------------------------------------------
 
-  Future<String?> _promptTotp(String title, {String? entityName, String? reason}) async {
+  Future<String?> _promptTotp(
+    String title, {
+    String? entityName,
+    String? reason,
+  }) async {
     final result = await showTotpPromptDialog(
       context,
       title: title,
@@ -238,7 +246,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     final confirmed = await showConfirmActionDialog(
       context,
       title: 'Cancel Booking',
-      message: 'Cancel booking for ${booking.reporteeName} on ${booking.seatLabel}?',
+      message:
+          'Cancel booking for ${booking.reporteeName} on ${booking.seatLabel}?',
       confirmLabel: 'Yes, cancel',
       cancelLabel: 'No',
       isDestructive: true,
@@ -254,15 +263,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.cancelBooking(booking.id, booking.reporteeId, code);
       _loadAvailability();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking cancelled')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Booking cancelled')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -290,9 +299,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     if (success == true) {
       _loadAvailability();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Waitlisted for $seatLabel')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Waitlisted for $seatLabel')));
       }
     }
   }
@@ -310,7 +319,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     if (confirmed != true) return;
 
     // Resolve reporteeId — may be null in model, fall back to name lookup
-    final reporteeId = w.reporteeId ??
+    final reporteeId =
+        w.reporteeId ??
         _reportees
             .where((r) => r.friendlyName == w.reporteeName)
             .map((r) => r.id)
@@ -344,9 +354,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -365,15 +375,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       _seatLabelCtrl.clear();
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Seat "$label" added')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Seat "$label" added')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -389,15 +399,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.deleteSeat(widget.teamId, seat.id, code);
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Seat "${seat.label}" deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Seat "${seat.label}" deleted')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -413,15 +423,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.approveReportee(widget.teamId, reporteeId, code);
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Member approved')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Member approved')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -445,15 +455,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.denyReportee(widget.teamId, r.id, code);
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Denied ${r.friendlyName}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Denied ${r.friendlyName}')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -477,15 +487,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.removeReportee(widget.teamId, r.id, code);
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Removed ${r.friendlyName}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Removed ${r.friendlyName}')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -494,7 +504,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     final confirmed = await showConfirmActionDialog(
       context,
       title: 'Delete Team',
-      message: 'Delete "${_team?.name}" and all its data? This cannot be undone.',
+      message:
+          'Delete "${_team?.name}" and all its data? This cannot be undone.',
       confirmLabel: 'Delete',
       isDestructive: true,
     );
@@ -508,16 +519,16 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     try {
       await _api.deleteTeam(widget.teamId, code);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Team deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Team deleted')));
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -537,7 +548,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       _loadAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Join request sent! Awaiting manager approval.')),
+          const SnackBar(
+            content: Text('Join request sent! Awaiting manager approval.'),
+          ),
         );
       }
     }
@@ -549,9 +562,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         text: 'https://officeaschi.azurewebsites.net/team/${widget.teamId}',
       ),
     );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Team link copied!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Team link copied!')));
   }
 
   // ---------------------------------------------------------------------------
@@ -718,113 +731,122 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   Widget _buildBookingsTab() {
     // Use _lastAvailability during refresh so waitlist/all-booked don't flicker
     final displayAvail = _availability ?? _lastAvailability;
-    final allBooked = (displayAvail?.availableCount ?? 1) == 0 &&
+    final allBooked =
+        (displayAvail?.availableCount ?? 1) == 0 &&
         (displayAvail?.totalSeats ?? 0) > 0;
     final waitlist = displayAvail?.waitlist ?? [];
     final cs = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
       onRefresh: _loadAvailability,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          DateNavigator(
-            selectedDate: _selectedDate,
-            onPreviousDay: _goToPreviousDay,
-            onNextDay: _goToNextDay,
-            onToday: _isToday ? null : _goToToday,
-            onDatePicked: (picked) {
-              setState(() => _selectedDate = picked);
-              _loadAvailability();
-            },
-          ),
-          const SizedBox(height: 16),
-          AvailabilityStats(availability: displayAvail),
-          const SizedBox(height: 12),
-          // Range action buttons
-          Row(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _toggleRangeView,
-                  icon: Icon(
-                    _showRangeView
-                        ? Icons.calendar_today
-                        : Icons.date_range,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _showRangeView ? 'Hide Range' : 'Range View',
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: _showRangeView
-                        ? BorderSide(color: cs.primary, width: 1.5)
-                        : null,
+              DateNavigator(
+                selectedDate: _selectedDate,
+                onPreviousDay: _goToPreviousDay,
+                onNextDay: _goToNextDay,
+                onToday: _isToday ? null : _goToToday,
+                onDatePicked: (picked) {
+                  setState(() => _selectedDate = picked);
+                  _loadAvailability();
+                },
+              ),
+              const SizedBox(height: 16),
+              AvailabilityStats(availability: displayAvail),
+              const SizedBox(height: 12),
+              // Range action buttons
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _toggleRangeView,
+                          icon: Icon(
+                            _showRangeView
+                                ? Icons.calendar_today
+                                : Icons.date_range,
+                            size: 18,
+                          ),
+                          label: Text(
+                            _showRangeView ? 'Hide Range' : 'Range View',
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: _showRangeView
+                                ? BorderSide(color: cs.primary, width: 1.5)
+                                : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _openRangeBookDialog,
+                          icon: const Icon(Icons.calendar_month, size: 18),
+                          label: const Text('Book Range'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _openRangeBookDialog,
-                  icon: const Icon(Icons.calendar_month, size: 18),
-                  label: const Text('Book Range'),
+              const SizedBox(height: 12),
+              // Range availability card
+              if (_showRangeView) ...[
+                RangeAvailabilityCard(
+                  rangeAvailability: _rangeAvailability,
+                  loading: _rangeLoading,
+                  rangeFrom: _rangeFrom,
+                  rangeTo: _rangeTo,
+                  onRangeFromChanged: _onRangeFromChanged,
+                  onRangeToChanged: _onRangeToChanged,
+                  onJumpToDate: _jumpToDate,
                 ),
-              ),
+                const SizedBox(height: 12),
+              ],
+              // Range booking result card
+              if (_lastRangeBookResult != null) ...[
+                RangeBookingResultCard(
+                  result: _lastRangeBookResult!,
+                  onDismiss: _dismissRangeResult,
+                ),
+                const SizedBox(height: 12),
+              ],
+              _availabilityLoading
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  : _availabilityError != null
+                  ? _buildAvailabilityError()
+                  : _buildSeatGrid(),
+              // "All Seats Booked — join waitlist" section
+              if (!_availabilityLoading &&
+                  _availabilityError == null &&
+                  allBooked &&
+                  (displayAvail?.bookings ?? []).isNotEmpty) ...[
+                const SizedBox(height: 16),
+                AllSeatsBookedCard(
+                  bookedSeats: displayAvail!.bookings,
+                  onWaitlist: _waitlistSeat,
+                ),
+              ],
+              // Current waitlist entries
+              if (waitlist.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                WaitlistCard(waitlist: waitlist, onCancel: _cancelWaitlist),
+              ],
             ],
           ),
-          const SizedBox(height: 12),
-          // Range availability card
-          if (_showRangeView) ...[
-            RangeAvailabilityCard(
-              rangeAvailability: _rangeAvailability,
-              loading: _rangeLoading,
-              rangeFrom: _rangeFrom,
-              rangeTo: _rangeTo,
-              onRangeFromChanged: _onRangeFromChanged,
-              onRangeToChanged: _onRangeToChanged,
-              onJumpToDate: _jumpToDate,
-            ),
-            const SizedBox(height: 12),
-          ],
-          // Range booking result card
-          if (_lastRangeBookResult != null) ...[
-            RangeBookingResultCard(
-              result: _lastRangeBookResult!,
-              onDismiss: _dismissRangeResult,
-            ),
-            const SizedBox(height: 12),
-          ],
-          _availabilityLoading
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              : _availabilityError != null
-              ? _buildAvailabilityError()
-              : _buildSeatGrid(),
-          // "All Seats Booked — join waitlist" section
-          if (!_availabilityLoading &&
-              _availabilityError == null &&
-              allBooked &&
-              (displayAvail?.bookings ?? []).isNotEmpty) ...[
-            const SizedBox(height: 16),
-            AllSeatsBookedCard(
-              bookedSeats: displayAvail!.bookings,
-              onWaitlist: _waitlistSeat,
-            ),
-          ],
-          // Current waitlist entries
-          if (waitlist.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            WaitlistCard(
-              waitlist: waitlist,
-              onCancel: _cancelWaitlist,
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -853,9 +875,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
           const SizedBox(height: 12),
           Text(
             _availabilityError!,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Text(
@@ -926,36 +948,85 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   // ---------------------------------------------------------------------------
 
   Widget _buildManageTab() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      children: [
-        ManageSeatsCard(
-          seats: _seats,
-          seatLabelController: _seatLabelCtrl,
-          onDeleteSeat: _deleteSeat,
-          onAddSeat: _addSeat,
-        ),
-        const SizedBox(height: 12),
-        if (_pendingReportees.isNotEmpty) ...[
-          PendingApprovalsCard(
-            pendingMembers: _pendingReportees,
-            onApprove: _approveReportee,
-            onDeny: _denyReportee,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 800;
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              children: [
+                if (isWide)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            ManageSeatsCard(
+                              seats: _seats,
+                              seatLabelController: _seatLabelCtrl,
+                              onDeleteSeat: _deleteSeat,
+                              onAddSeat: _addSeat,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            if (_pendingReportees.isNotEmpty) ...[
+                              PendingApprovalsCard(
+                                pendingMembers: _pendingReportees,
+                                onApprove: _approveReportee,
+                                onDeny: _denyReportee,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            MemberListCard(
+                              members: _approvedReportees,
+                              onRemove: _removeReportee,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  ManageSeatsCard(
+                    seats: _seats,
+                    seatLabelController: _seatLabelCtrl,
+                    onDeleteSeat: _deleteSeat,
+                    onAddSeat: _addSeat,
+                  ),
+                  const SizedBox(height: 12),
+                  if (_pendingReportees.isNotEmpty) ...[
+                    PendingApprovalsCard(
+                      pendingMembers: _pendingReportees,
+                      onApprove: _approveReportee,
+                      onDeny: _denyReportee,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  MemberListCard(
+                    members: _approvedReportees,
+                    onRemove: _removeReportee,
+                  ),
+                ],
+                const SizedBox(height: 12),
+                DangerZoneCard(
+                  title: 'Delete this team',
+                  subtitle: 'Removes all seats, members, and bookings.',
+                  onAction: _deleteTeam,
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-        ],
-        MemberListCard(
-          members: _approvedReportees,
-          onRemove: _removeReportee,
-        ),
-        const SizedBox(height: 12),
-        DangerZoneCard(
-          title: 'Delete this team',
-          subtitle: 'Removes all seats, members, and bookings.',
-          onAction: _deleteTeam,
-        ),
-        const SizedBox(height: 32),
-      ],
+        );
+      },
     );
   }
 }
