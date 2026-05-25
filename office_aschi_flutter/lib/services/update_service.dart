@@ -920,7 +920,7 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog>
     return PopScope(
       canPop: true,
       child: AlertDialog(
-        title: const Text('Downloading Update'),
+        title: Text('Downloading Update v${widget.update.version}'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 400, maxWidth: 340),
           child: SingleChildScrollView(
