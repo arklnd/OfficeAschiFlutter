@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -35,7 +36,7 @@ void callbackDispatcher() {
       final plugin = FlutterLocalNotificationsPlugin();
       await plugin.initialize(
         const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          android: AndroidInitializationSettings('@mipmap/ic_launcher_foreground'),
         ),
       );
 
@@ -54,6 +55,8 @@ void callbackDispatcher() {
             channelDescription: _channelDescription,
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
+            largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
+            color: const Color(0xFF673AB7), // deepPurple
             styleInformation: changelogPreview.isNotEmpty
                 ? BigTextStyleInformation(
                     '${update.releaseName}$changelogPreview',

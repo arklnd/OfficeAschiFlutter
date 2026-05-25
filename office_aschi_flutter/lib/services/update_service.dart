@@ -401,7 +401,7 @@ class DownloadManager {
     _notifPlugin = FlutterLocalNotificationsPlugin();
     await _notifPlugin!.initialize(
       const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        android: AndroidInitializationSettings('@mipmap/ic_launcher_foreground'),
       ),
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
@@ -418,7 +418,7 @@ class DownloadManager {
       _notifPlugin = FlutterLocalNotificationsPlugin();
       _notifPlugin!.initialize(
         const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          android: AndroidInitializationSettings('@mipmap/ic_launcher_foreground'),
         ),
         onDidReceiveNotificationResponse: _onNotificationTap,
       );
@@ -542,6 +542,8 @@ class DownloadManager {
           showProgress: true,
           maxProgress: 100,
           progress: 0,
+          largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
+          color: const Color(0xFF673AB7), // deepPurple
           actions: [
             const AndroidNotificationAction(
               'cancel_download',
@@ -614,6 +616,8 @@ class DownloadManager {
           showProgress: true,
           maxProgress: 100,
           progress: percent,
+          largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
+          color: const Color(0xFF673AB7), // deepPurple
           actions: [
             const AndroidNotificationAction(
               'cancel_download',
@@ -640,6 +644,8 @@ class DownloadManager {
           _downloadChannelName,
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
+          largeIcon: DrawableResourceAndroidBitmap('ic_notification_large'),
+          color: Color(0xFF673AB7), // deepPurple
         ),
       ),
     );
@@ -658,6 +664,8 @@ class DownloadManager {
           _downloadChannelName,
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
+          largeIcon: DrawableResourceAndroidBitmap('ic_notification_large'),
+          color: Color(0xFF673AB7), // deepPurple
         ),
       ),
     );
