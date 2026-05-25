@@ -20,6 +20,8 @@ void main() async {
   await BackgroundUpdateManager.init();
   await BackgroundUpdateManager.syncWithPreference();
   await DownloadManager.instance.initNotifications();
+  // Check if a download was in progress before the app was killed
+  await DownloadManager.instance.checkPendingDownload();
   runApp(const MyApp());
 }
 

@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +35,26 @@ class AppUpdate {
     required this.releaseName,
     required this.changelog,
   });
+
+  Map<String, dynamic> toJson() => {
+        'buildNumber': buildNumber,
+        'version': version,
+        'tagName': tagName,
+        'downloadUrl': downloadUrl,
+        'sizeBytes': sizeBytes,
+        'releaseName': releaseName,
+        'changelog': changelog,
+      };
+
+  factory AppUpdate.fromJson(Map<String, dynamic> json) => AppUpdate(
+        buildNumber: json['buildNumber'] as int,
+        version: json['version'] as String,
+        tagName: json['tagName'] as String,
+        downloadUrl: json['downloadUrl'] as String,
+        sizeBytes: json['sizeBytes'] as int,
+        releaseName: json['releaseName'] as String,
+        changelog: json['changelog'] as String,
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -335,11 +356,28 @@ class UpdateService {
 
 // ---------------------------------------------------------------------------
 // Download Manager – singleton that survives dialog dismissal
+// Uses Android's system DownloadManager so downloads continue even if the
+// app is killed.
 // ---------------------------------------------------------------------------
 
 const _downloadNotifId = 42;
 const _downloadChannelId = 'download_progress';
 const _downloadChannelName = 'Download Progress';
+
+// SharedPreferences keys for persisting active download across app restarts
+const _prefDownloadId = 'pending_download_id';
+const _prefDownloadUpdate = 'pending_download_update';
+
+// Android DownloadManager status codes
+const _statusPending = 1;
+const _statusRunning = 2;
+const _statusPaused = 4;
+const _statusSuccessful = 8;
+const _statusFailed = 16;
+
+// Platform channel names
+const _methodChannel = MethodChannel('com.officeaschi/download_manager');
+const _eventChannel = EventChannel('com.officeaschi/download_events');
 
 class DownloadManager {
   DownloadManager._();
@@ -362,8 +400,9 @@ class DownloadManager {
   double _lastProgress = 0;
   DateTime _lastSpeedSample = DateTime.now();
 
-  bool _foregroundServiceRunning = false;
-  DateTime _lastNotifUpdate = DateTime.now();
+  Timer? _progressTimer;
+  int? _nativeDownloadId;
+  StreamSubscription? _completionSub;
 
   String get remainingFormatted {
     if (_speedBps <= 0 || activeUpdate == null) return '';
@@ -392,6 +431,8 @@ class DownloadManager {
     return '${(_speedBps / 1024).toStringAsFixed(0)} KB/s';
   }
 
+  // ---- Notification helpers (for completed/failed only) ----
+
   FlutterLocalNotificationsPlugin? _notifPlugin;
   bool _notifInitialized = false;
 
@@ -411,6 +452,21 @@ class DownloadManager {
         >()
         ?.requestNotificationsPermission();
     _notifInitialized = true;
+
+    // Handle cold-start: if the app was launched by tapping a notification
+    // while it was completely dead, the callback above won't fire.
+    // We must check getNotificationAppLaunchDetails() instead.
+    try {
+      final launchDetails =
+          await _notifPlugin!.getNotificationAppLaunchDetails();
+      if (launchDetails != null &&
+          launchDetails.didNotificationLaunchApp &&
+          launchDetails.notificationResponse != null) {
+        _onNotificationTap(launchDetails.notificationResponse!);
+      }
+    } catch (e) {
+      debugPrint('Error checking notification launch details: $e');
+    }
   }
 
   FlutterLocalNotificationsPlugin _getNotifPluginSync() {
@@ -432,29 +488,62 @@ class DownloadManager {
       return;
     }
     if (response.payload != 'download_progress') return;
-    _reopenDownloadDialog();
+    _pendingDialogOpen = true;
+    _tryShowPendingDialog();
   }
 
-  Future<void> _installCompletedUpdate() async {
-    final update = activeUpdate;
-    if (update == null) return;
-    final apk = await UpdateService.getExistingApk(update);
-    if (apk != null) {
-      await UpdateService.installApk(apk);
-    }
-  }
+  /// Whether a notification tap requested opening the download dialog.
+  /// Used to defer dialog show until the navigator is ready (cold start).
+  bool _pendingDialogOpen = false;
 
-  void _reopenDownloadDialog() {
+  void _tryShowPendingDialog() {
+    if (!_pendingDialogOpen) return;
     final update = activeUpdate;
-    if (update == null) return;
+    if (update == null) return; // wait for checkPendingDownload to set it
     final ctx = navigatorKey.currentState?.overlay?.context;
-    if (ctx == null) return;
+    if (ctx == null) return; // wait for navigator to be ready
+    _pendingDialogOpen = false;
     showDialog(
       context: ctx,
       barrierDismissible: true,
       builder: (_) => DownloadProgressDialog(update: update),
     );
   }
+
+  Future<void> _installCompletedUpdate() async {
+    // Try activeUpdate first (app was alive), fall back to persisted state
+    // (cold start from notification tap).
+    AppUpdate? update = activeUpdate;
+    if (update == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final json = prefs.getString(_prefDownloadUpdate);
+        if (json != null) {
+          update = AppUpdate.fromJson(
+            jsonDecode(json) as Map<String, dynamic>,
+          );
+        }
+      } catch (_) {}
+    }
+    if (update == null) return;
+
+    final apk = await UpdateService.getExistingApk(update);
+    if (apk != null) {
+      activeUpdate = update;
+      completed = true;
+      progress.value = 1.0;
+
+      // Clear persisted state
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefDownloadId);
+      await prefs.remove(_prefDownloadUpdate);
+
+      await UpdateService.installApk(apk);
+    }
+  }
+
+
+  // ---- Core download using Android DownloadManager ----
 
   Future<void> start(AppUpdate update) async {
     if (_downloading && activeUpdate?.tagName == update.tagName) return;
@@ -469,40 +558,187 @@ class DownloadManager {
     _speedBps = 0;
     _lastProgress = 0;
     _lastSpeedSample = DateTime.now();
-    _lastNotifUpdate = DateTime.now();
-
-    // Start foreground service to maintain download speed in background
-    await _startForeground(update);
 
     try {
-      await UpdateService.downloadAndInstall(
-        update,
-        onProgress: (p) {
-          _updateSpeed(p, update.sizeBytes);
-          progress.value = p;
-          _throttledNotifUpdate(update, p);
+      // Check if already downloaded
+      final existing = await UpdateService.getExistingApk(update);
+      if (existing != null) {
+        progress.value = 1.0;
+        completed = true;
+        _downloading = false;
+        await UpdateService.installApk(existing);
+        return;
+      }
+
+      // Clean old APKs
+      final dir = await UpdateService._downloadDir();
+      final fileName = UpdateService.apkFileName(update);
+      await UpdateService._cleanOldApks(dir, fileName);
+
+      // Delete any leftover .part file from old download mechanism
+      final partFile = File('${dir.path}/$fileName.part');
+      if (await partFile.exists()) {
+        try { await partFile.delete(); } catch (_) {}
+      }
+
+      // Delete any partially-downloaded file so DownloadManager starts fresh
+      final targetFile = File('${dir.path}/$fileName');
+      if (await targetFile.exists()) {
+        try { await targetFile.delete(); } catch (_) {}
+      }
+
+      // Enqueue download via Android's system DownloadManager
+      final downloadId = await _methodChannel.invokeMethod<int>(
+        'enqueueDownload',
+        {
+          'url': update.downloadUrl,
+          'fileName': fileName,
+          'title': 'Downloading update v${update.version}',
+          'description': update.releaseName,
         },
-        isCancelled: () => _cancelled,
       );
-      completed = true;
+
+      if (downloadId == null) {
+        throw Exception('Failed to enqueue download');
+      }
+
+      _nativeDownloadId = downloadId;
+
+      // Persist download state so we can recover after app restart
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_prefDownloadId, downloadId);
+      await prefs.setString(_prefDownloadUpdate, jsonEncode(update.toJson()));
+
+      // Listen for completion events from the native BroadcastReceiver
+      _listenForCompletion(downloadId, update);
+
+      // Poll progress periodically while the app is alive
+      _startProgressPolling(downloadId, update);
     } catch (e) {
       if (!_cancelled) {
         error = e.toString();
       }
-    } finally {
       _downloading = false;
-      await _stopForeground();
-      if (completed) {
-        await _showCompletedNotification(update);
-      } else if (!_cancelled) {
+      if (!_cancelled) {
         await _showFailedNotification(update);
       }
     }
   }
 
+  void _listenForCompletion(int downloadId, AppUpdate update) {
+    _completionSub?.cancel();
+    _completionSub = _eventChannel
+        .receiveBroadcastStream()
+        .map((event) => Map<String, dynamic>.from(event as Map))
+        .listen((event) {
+      final eventId = (event['downloadId'] as num?)?.toInt();
+      if (eventId != downloadId) return;
+
+      final status = (event['status'] as num?)?.toInt();
+      if (status == _statusSuccessful) {
+        _onDownloadCompleted(update);
+      } else if (status == _statusFailed) {
+        _onDownloadFailed(update, 'Download failed');
+      }
+    });
+  }
+
+  void _startProgressPolling(int downloadId, AppUpdate update) {
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(
+      const Duration(milliseconds: 500),
+      (_) => _pollProgress(downloadId, update),
+    );
+  }
+
+  Future<void> _pollProgress(int downloadId, AppUpdate update) async {
+    if (_cancelled || completed) {
+      _progressTimer?.cancel();
+      return;
+    }
+
+    try {
+      final info = await _methodChannel.invokeMethod<Map>(
+        'queryProgress',
+        {'downloadId': downloadId},
+      );
+
+      if (info == null) return;
+
+      final status = (info['status'] as num?)?.toInt() ?? 0;
+      final bytesDownloaded = (info['bytesDownloaded'] as num?)?.toInt() ?? 0;
+      final bytesTotal = (info['bytesTotal'] as num?)?.toInt() ?? 0;
+
+      if (bytesTotal > 0) {
+        final p = bytesDownloaded / bytesTotal;
+        _updateSpeed(p, bytesTotal);
+        progress.value = p;
+      }
+
+      if (status == _statusSuccessful) {
+        _onDownloadCompleted(update);
+      } else if (status == _statusFailed) {
+        final reason = (info['reason'] as num?)?.toInt() ?? 0;
+        _onDownloadFailed(update, 'Download failed (reason: $reason)');
+      }
+    } catch (e) {
+      debugPrint('Error polling download progress: $e');
+    }
+  }
+
+  Future<void> _onDownloadCompleted(AppUpdate update) async {
+    _progressTimer?.cancel();
+    _completionSub?.cancel();
+    progress.value = 1.0;
+    completed = true;
+    _downloading = false;
+    _nativeDownloadId = null;
+
+    // Clear persisted state
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefDownloadId);
+    await prefs.remove(_prefDownloadUpdate);
+
+    await _showCompletedNotification(update);
+
+    // Auto-install
+    final apk = await UpdateService.getExistingApk(update);
+    if (apk != null) {
+      await UpdateService.installApk(apk);
+    }
+  }
+
+  Future<void> _onDownloadFailed(AppUpdate update, String reason) async {
+    _progressTimer?.cancel();
+    _completionSub?.cancel();
+    _downloading = false;
+    _nativeDownloadId = null;
+    error = reason;
+
+    // Clear persisted state
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefDownloadId);
+    await prefs.remove(_prefDownloadUpdate);
+
+    await _showFailedNotification(update);
+  }
+
   void cancel() {
     _cancelled = true;
-    _stopForeground();
+    _progressTimer?.cancel();
+    _completionSub?.cancel();
+
+    final downloadId = _nativeDownloadId;
+    if (downloadId != null) {
+      _methodChannel.invokeMethod('cancelDownload', {'downloadId': downloadId});
+      _nativeDownloadId = null;
+    }
+
+    // Clear persisted state
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove(_prefDownloadId);
+      prefs.remove(_prefDownloadUpdate);
+    });
   }
 
   void reset() {
@@ -512,6 +748,118 @@ class DownloadManager {
     progress.value = 0;
     startTime = null;
     _speedBps = 0;
+  }
+
+  /// Called on app startup to check if a download was in progress before the
+  /// app was killed. If the system DownloadManager finished the download,
+  /// this triggers installation. If still in progress, it re-attaches
+  /// progress polling.
+  Future<void> checkPendingDownload() async {
+    if (kIsWeb) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final downloadId = prefs.getInt(_prefDownloadId);
+      final updateJson = prefs.getString(_prefDownloadUpdate);
+
+      if (downloadId == null || updateJson == null) return;
+
+      final update = AppUpdate.fromJson(
+        jsonDecode(updateJson) as Map<String, dynamic>,
+      );
+
+      // Check if the APK is already fully downloaded (DownloadManager finished
+      // while the app was dead).
+      final existingApk = await UpdateService.getExistingApk(update);
+      if (existingApk != null) {
+        // Download completed while app was closed
+        activeUpdate = update;
+        completed = true;
+        progress.value = 1.0;
+
+        await prefs.remove(_prefDownloadId);
+        await prefs.remove(_prefDownloadUpdate);
+
+        await _showCompletedNotification(update);
+        await UpdateService.installApk(existingApk);
+        return;
+      }
+
+      // Query the DownloadManager for current status
+      final info = await _methodChannel.invokeMethod<Map>(
+        'queryProgress',
+        {'downloadId': downloadId},
+      );
+
+      if (info == null) {
+        // Download entry no longer exists — clean up
+        await prefs.remove(_prefDownloadId);
+        await prefs.remove(_prefDownloadUpdate);
+        return;
+      }
+
+      final status = (info['status'] as num?)?.toInt() ?? 0;
+
+      if (status == _statusSuccessful) {
+        activeUpdate = update;
+        completed = true;
+        progress.value = 1.0;
+        _downloading = false;
+
+        await prefs.remove(_prefDownloadId);
+        await prefs.remove(_prefDownloadUpdate);
+
+        await _showCompletedNotification(update);
+
+        final apk = await UpdateService.getExistingApk(update);
+        if (apk != null) {
+          await UpdateService.installApk(apk);
+        }
+      } else if (status == _statusFailed) {
+        activeUpdate = update;
+        error = 'Download failed while app was closed';
+        _downloading = false;
+
+        await prefs.remove(_prefDownloadId);
+        await prefs.remove(_prefDownloadUpdate);
+
+        await _showFailedNotification(update);
+      } else if (status == _statusRunning ||
+                 status == _statusPending ||
+                 status == _statusPaused) {
+        // Download still in progress — re-attach
+        activeUpdate = update;
+        _downloading = true;
+        _cancelled = false;
+        error = null;
+        completed = false;
+        _nativeDownloadId = downloadId;
+        startTime = DateTime.now();
+        _speedBps = 0;
+        _lastProgress = 0;
+        _lastSpeedSample = DateTime.now();
+
+        final bytesDownloaded =
+            (info['bytesDownloaded'] as num?)?.toInt() ?? 0;
+        final bytesTotal = (info['bytesTotal'] as num?)?.toInt() ?? 0;
+        if (bytesTotal > 0) {
+          progress.value = bytesDownloaded / bytesTotal;
+          _lastProgress = progress.value;
+        }
+
+        _listenForCompletion(downloadId, update);
+        _startProgressPolling(downloadId, update);
+
+        // Show the download progress dialog once the UI is ready.
+        // On cold start this runs before runApp(), so defer until the
+        // first frame is drawn.
+        _pendingDialogOpen = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _tryShowPendingDialog();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking pending download: $e');
+    }
   }
 
   void _updateSpeed(double p, int totalBytes) {
@@ -528,124 +876,11 @@ class DownloadManager {
     }
   }
 
-  // ---- Foreground service for background download speed ----
-
-  Future<void> _startForeground(AppUpdate update) async {
-    if (kIsWeb) return;
-    try {
-      await initNotifications();
-      final androidPlugin = _getNotifPluginSync()
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      if (androidPlugin == null) return;
-
-      await androidPlugin.startForegroundService(
-        _downloadNotifId,
-        'Downloading update v${update.version}',
-        'Starting download\u2026',
-         notificationDetails: AndroidNotificationDetails(
-          _downloadChannelId,
-          _downloadChannelName,
-          channelDescription: 'Shows download progress for app updates',
-          importance: Importance.low,
-          priority: Priority.low,
-          onlyAlertOnce: true,
-          ongoing: true,
-          autoCancel: false,
-          showProgress: true,
-          maxProgress: 100,
-          progress: 0,
-          largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
-          color: const Color(0xFF673AB7), // deepPurple
-          actions: [
-            const AndroidNotificationAction(
-              'cancel_download',
-              'Cancel',
-              showsUserInterface: false,
-            ),
-          ],
-        ),
-        payload: 'download_progress',
-        foregroundServiceTypes: {AndroidServiceForegroundType.foregroundServiceTypeDataSync},
-      );
-      _foregroundServiceRunning = true;
-    } catch (e) {
-      debugPrint('Failed to start foreground service: $e');
-    }
-  }
-
-  Future<void> _stopForeground() async {
-    if (!_foregroundServiceRunning) return;
-    if (kIsWeb) return;
-    try {
-      final androidPlugin = _getNotifPluginSync()
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      await androidPlugin?.stopForegroundService();
-    } catch (e) {
-      debugPrint('Failed to stop foreground service: $e');
-    }
-    _foregroundServiceRunning = false;
-  }
-
-  void _throttledNotifUpdate(AppUpdate update, double p) {
-    final now = DateTime.now();
-    if (now.difference(_lastNotifUpdate).inMilliseconds < 500) return;
-    _lastNotifUpdate = now;
-    _updateForegroundNotification(update, p);
-  }
-
-  Future<void> _updateForegroundNotification(AppUpdate update, double p) async {
-    if (!_foregroundServiceRunning) return;
-    if (kIsWeb) return;
-
-    final plugin = _getNotifPluginSync();
-    final percent = (p * 100).round();
-    final totalMb = (update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
-    final dlMb = (p * update.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
-
-    final remaining = remainingFormatted;
-    final speed = speedFormatted;
-    final subText = [
-      '$dlMb / $totalMb MB \u2014 $percent%',
-      if (remaining.isNotEmpty) remaining,
-      if (speed.isNotEmpty) speed,
-    ].join(' \u00B7 ');
-
-    await plugin.show(
-      _downloadNotifId,
-      'Downloading update v${update.version}',
-      subText,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _downloadChannelId,
-          _downloadChannelName,
-          channelDescription: 'Shows download progress for app updates',
-          importance: Importance.low,
-          priority: Priority.low,
-          onlyAlertOnce: true,
-          ongoing: true,
-          autoCancel: false,
-          showProgress: true,
-          maxProgress: 100,
-          progress: percent,
-          largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
-          color: const Color(0xFF673AB7), // deepPurple
-          actions: [
-            const AndroidNotificationAction(
-              'cancel_download',
-              'Cancel',
-              showsUserInterface: false,
-            ),
-          ],
-        ),
-      ),
-      payload: 'download_progress',
-    );
-  }
+  // ---- Notification helpers ----
 
   Future<void> _showCompletedNotification(AppUpdate update) async {
     if (kIsWeb) return;
+    await initNotifications();
     final plugin = _getNotifPluginSync();
     await plugin.show(
       _downloadNotifId,
@@ -667,6 +902,7 @@ class DownloadManager {
 
   Future<void> _showFailedNotification(AppUpdate update) async {
     if (kIsWeb) return;
+    await initNotifications();
     final plugin = _getNotifPluginSync();
     await plugin.show(
       _downloadNotifId,
@@ -884,7 +1120,17 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog>
   }
 
   void _onProgress() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+
+    // Check if download completed or failed while dialog is showing
+    if (_dm.completed) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) Navigator.of(context).pop();
+      });
+    } else if (_dm.error != null && _error == null) {
+      setState(() => _error = _dm.error);
+    }
   }
 
   Future<void> _startDownload() async {
@@ -902,9 +1148,9 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog>
       });
     } else if (_dm.error != null) {
       setState(() => _error = _dm.error);
-    } else {
-      Navigator.of(context).pop();
     }
+    // If downloading is in progress, the dialog stays open and
+    // _onProgress will handle UI updates via the progress listener.
   }
 
   void _onCancel() {
