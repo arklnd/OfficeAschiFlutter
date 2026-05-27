@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../theme/app_colors.dart';
+import '../utils/snackbar_service.dart';
 
 /// Card showing range availability using Material 3 design patterns.
 ///
@@ -87,7 +88,7 @@ class RangeAvailabilityCard extends StatelessWidget {
       final days = range.end.difference(range.start).inDays + 1;
       if (days > 90) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          showRootSnackBar(
             const SnackBar(content: Text('Date range cannot exceed 90 days')),
           );
         }

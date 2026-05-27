@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
 import '../utils/clipboard_otp_mixin.dart';
+import '../utils/snackbar_service.dart';
 import '../widgets/seat_booking_card.dart';
 import '../widgets/date_navigator.dart';
 import '../widgets/availability_stats.dart';
@@ -263,15 +264,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.cancelBooking(booking.id, booking.reporteeId, code);
       _loadAvailability();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Booking cancelled')));
+        showRootSnackBar(const SnackBar(content: Text('Booking cancelled')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        showRootSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -299,9 +296,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     if (success == true) {
       _loadAvailability();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Waitlisted for $seatLabel')));
+        showRootSnackBar(SnackBar(content: Text('Waitlisted for $seatLabel')));
       }
     }
   }
@@ -327,7 +322,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
             .firstOrNull;
     if (reporteeId == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showRootSnackBar(
           const SnackBar(content: Text('Cannot identify reportee')),
         );
       }
@@ -344,7 +339,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.cancelBooking(w.bookingId, reporteeId, code);
       _loadAvailability();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showRootSnackBar(
           SnackBar(
             content: Text(
               'Removed ${w.reporteeName} from waitlist for ${w.desiredSeatLabel}',
@@ -354,9 +349,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        showRootSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -375,15 +368,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       _seatLabelCtrl.clear();
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Seat "$label" added')));
+        showRootSnackBar(SnackBar(content: Text('Seat "$label" added')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        showRootSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -399,15 +388,13 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.deleteSeat(widget.teamId, seat.id, code);
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Seat "${seat.label}" deleted')));
+        showRootSnackBar(
+          SnackBar(content: Text('Seat "${seat.label}" deleted')),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        showRootSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -423,15 +410,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.approveReportee(widget.teamId, reporteeId, code);
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Member approved')));
+        showRootSnackBar(const SnackBar(content: Text('Member approved')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        showRootSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -455,15 +438,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.denyReportee(widget.teamId, r.id, code);
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Denied ${r.friendlyName}')));
+        showRootSnackBar(SnackBar(content: Text('Denied ${r.friendlyName}')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        showRootSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -487,15 +466,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       await _api.removeReportee(widget.teamId, r.id, code);
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Removed ${r.friendlyName}')));
+        showRootSnackBar(SnackBar(content: Text('Removed ${r.friendlyName}')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        showRootSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -519,16 +494,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     try {
       await _api.deleteTeam(widget.teamId, code);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Team deleted')));
+        showRootSnackBar(const SnackBar(content: Text('Team deleted')));
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        showRootSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -547,7 +518,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
       _currentReporteeId = reporteeId;
       _loadAll();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showRootSnackBar(
           const SnackBar(
             content: Text('Join request sent! Awaiting manager approval.'),
           ),
@@ -562,9 +533,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
         text: 'https://officeaschi.azurewebsites.net/team/${widget.teamId}',
       ),
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Team link copied!')));
+    showRootSnackBar(const SnackBar(content: Text('Team link copied!')));
   }
 
   // ---------------------------------------------------------------------------
@@ -597,7 +566,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     } catch (e) {
       if (mounted) {
         setState(() => _rangeLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
+        showRootSnackBar(
           SnackBar(content: Text('Failed to load range availability: $e')),
         );
       }

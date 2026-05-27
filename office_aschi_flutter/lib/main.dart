@@ -6,6 +6,7 @@ import 'services/background_update.dart';
 import 'services/update_service.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
+import 'utils/snackbar_service.dart';
 import 'widgets/health_banner.dart';
 import 'screens/team_search_screen.dart';
 import 'screens/team_detail_screen.dart';
@@ -59,7 +60,13 @@ class MyApp extends StatelessWidget {
                     Widget content = Column(
                       children: [
                         HealthBanner(api: api),
-                        Expanded(child: child ?? const SizedBox.shrink()),
+                        Expanded(
+                          // Inner ScaffoldMessenger isolates page Scaffolds
+                          // so they don't register with the root one.
+                          child: ScaffoldMessenger(
+                            child: child ?? const SizedBox.shrink(),
+                          ),
+                        ),
                       ],
                     );
                     if (kDebugMode) {
@@ -69,7 +76,12 @@ class MyApp extends StatelessWidget {
                         child: content,
                       );
                     }
-                    return content;
+                    // Root ScaffoldMessenger + Scaffold sits above the
+                    // Navigator so its snackbars paint on top of dialogs.
+                    return ScaffoldMessenger(
+                      key: rootScaffoldMessengerKey,
+                      child: Scaffold(body: content),
+                    );
                   },
                   home: const TeamSearchScreen(),
                   onGenerateRoute: (settings) {

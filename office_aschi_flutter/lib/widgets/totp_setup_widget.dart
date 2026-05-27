@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../utils/qr_download.dart';
+import '../utils/snackbar_service.dart';
 
 /// Reusable TOTP setup widget displaying:
 /// - QR code for authenticator apps
@@ -83,7 +84,7 @@ class TotpSetupWidget extends StatelessWidget {
                   'totp-${DateTime.now().millisecondsSinceEpoch}.png',
                 );
                 if (path != null && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  showRootSnackBar(
                     SnackBar(content: Text('QR saved to $path')),
                   );
                 }
@@ -94,7 +95,7 @@ class TotpSetupWidget extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: secret));
-                ScaffoldMessenger.of(context).showSnackBar(
+                showRootSnackBar(
                   const SnackBar(content: Text('Secret copied!')),
                 );
               },

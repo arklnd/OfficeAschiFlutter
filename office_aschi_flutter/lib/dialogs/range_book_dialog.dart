@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
+import '../utils/snackbar_service.dart';
 
 /// Result returned when the range book dialog is confirmed.
 class RangeBookDialogResult {
@@ -37,13 +38,13 @@ Future<RangeBookingResponse?> showRangeBookDialog(
   required void Function(BuildContext ctx) launchAuthenticator,
 }) async {
   if (seats.isEmpty) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('No seats available to book')));
+    showRootSnackBar(
+      const SnackBar(content: Text('No seats available to book')),
+    );
     return null;
   }
   if (availableReportees.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showRootSnackBar(
       const SnackBar(content: Text('No available members to book')),
     );
     return null;
@@ -234,7 +235,7 @@ Future<RangeBookingResponse?> showRangeBookDialog(
               onPressed: () async {
                 if (!isValid) return;
                 if (codeCtrl.text.isEmpty) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
+                  showRootSnackBar(
                     const SnackBar(content: Text('Please enter a TOTP code')),
                   );
                   return;
@@ -255,15 +256,11 @@ Future<RangeBookingResponse?> showRangeBookDialog(
                     final msg =
                         'Booked ${res.seatLabel}: ${res.confirmedCount} confirmed, '
                         '${res.waitlistedCount} waitlisted, ${res.failedCount} skipped';
-                    ScaffoldMessenger.of(
-                      ctx,
-                    ).showSnackBar(SnackBar(content: Text(msg)));
+                    showRootSnackBar(SnackBar(content: Text(msg)));
                   }
                 } catch (e) {
                   if (ctx.mounted) {
-                    ScaffoldMessenger.of(
-                      ctx,
-                    ).showSnackBar(SnackBar(content: Text(e.toString())));
+                    showRootSnackBar(SnackBar(content: Text(e.toString())));
                   }
                 }
               },

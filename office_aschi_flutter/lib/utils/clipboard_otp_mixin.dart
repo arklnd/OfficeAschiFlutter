@@ -58,7 +58,7 @@ mixin ClipboardOtpMixin<T extends StatefulWidget> on State<T> {
     clipboardOtp.value = null;
   }
 
-  Future<void> launchAuthenticator(BuildContext ctx) async {
+  Future<String?> launchAuthenticator(BuildContext ctx) async {
     awaitingAuthenticatorReturn = true;
     final uris = [
       Uri.parse('otpauth://'),
@@ -69,22 +69,15 @@ mixin ClipboardOtpMixin<T extends StatefulWidget> on State<T> {
       try {
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
-          return;
+          return null;
         }
       } catch (_) {}
     }
-    if (ctx.mounted) {
-      awaitingAuthenticatorReturn = false;
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(
-          content: Text('No authenticator app found. Please open it manually.'),
-        ),
-      );
-    }
+    awaitingAuthenticatorReturn = false;
+    return 'No authenticator app found. Please open it manually.';
   }
 
-  /// Launch a specific OTP URI (used when creating/joining with a new secret).
-  Future<void> launchAuthenticatorWithUri(
+  Future<String?> launchAuthenticatorWithUri(
     BuildContext ctx,
     String otpUri,
   ) async {
@@ -95,19 +88,14 @@ mixin ClipboardOtpMixin<T extends StatefulWidget> on State<T> {
         uri,
         mode: LaunchMode.externalApplication,
       );
-      if (!launched && ctx.mounted) {
+      if (!launched) {
         awaitingAuthenticatorReturn = false;
-        ScaffoldMessenger.of(ctx).showSnackBar(
-          const SnackBar(content: Text('No authenticator app found')),
-        );
+        return 'No authenticator app found';
       }
+      return null;
     } catch (_) {
       awaitingAuthenticatorReturn = false;
-      if (ctx.mounted) {
-        ScaffoldMessenger.of(ctx).showSnackBar(
-          const SnackBar(content: Text('No authenticator app found')),
-        );
-      }
+      return 'No authenticator app found';
     }
   }
 }

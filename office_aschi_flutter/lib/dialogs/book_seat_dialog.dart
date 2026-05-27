@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
+import '../utils/snackbar_service.dart';
 
 /// Dialog for booking a seat. Shows person selector, date, and TOTP code input.
 ///
@@ -15,11 +16,11 @@ Future<bool?> showBookSeatDialog(
   required int? currentReporteeId,
   required ValueNotifier<String?> clipboardOtp,
   required void Function(TextEditingController ctrl, String code)
-      pasteClipboardCode,
+  pasteClipboardCode,
   required void Function(BuildContext ctx) launchAuthenticator,
 }) async {
   if (availableReportees.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showRootSnackBar(
       const SnackBar(content: Text('No available members to book')),
     );
     return null;
@@ -53,10 +54,8 @@ Future<bool?> showBookSeatDialog(
               decoration: const InputDecoration(labelText: 'Select Person'),
               items: availableReportees
                   .map(
-                    (r) => DropdownMenuItem(
-                      value: r,
-                      child: Text(r.friendlyName),
-                    ),
+                    (r) =>
+                        DropdownMenuItem(value: r, child: Text(r.friendlyName)),
                   )
                   .toList(),
               onChanged: (v) => setDialogState(() => selected = v),
@@ -126,7 +125,7 @@ Future<bool?> showBookSeatDialog(
                 success = true;
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(ctx).showSnackBar(
+                  showRootSnackBar(
                     SnackBar(
                       content: Text(
                         'Booked ${selected!.friendlyName} on $seatLabel',
@@ -136,9 +135,7 @@ Future<bool?> showBookSeatDialog(
                 }
               } catch (e) {
                 if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(content: Text(e.toString())),
-                  );
+                  showRootSnackBar(SnackBar(content: Text(e.toString())));
                 }
               }
             },

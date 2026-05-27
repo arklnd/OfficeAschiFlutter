@@ -6,6 +6,7 @@ import '../services/update_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/section_header.dart';
 import '../widgets/icon_box.dart';
+import '../utils/snackbar_service.dart';
 import '../version.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -53,7 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (update != null) {
       showUpdateDialog(context, update);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showRootSnackBar(
         const SnackBar(content: Text('You\'re already on the latest version.')),
       );
     }
