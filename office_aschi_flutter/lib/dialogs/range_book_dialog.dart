@@ -33,13 +33,13 @@ Future<RangeBookingResponse?> showRangeBookDialog(
   required DateTime defaultDate,
   required ValueNotifier<String?> clipboardOtp,
   required void Function(TextEditingController ctrl, String code)
-      pasteClipboardCode,
+  pasteClipboardCode,
   required void Function(BuildContext ctx) launchAuthenticator,
 }) async {
   if (seats.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No seats available to book')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('No seats available to book')));
     return null;
   }
   if (availableReportees.isEmpty) {
@@ -88,10 +88,7 @@ Future<RangeBookingResponse?> showRangeBookDialog(
                   decoration: const InputDecoration(labelText: 'Select Seat'),
                   items: seats
                       .map(
-                        (s) => DropdownMenuItem(
-                          value: s,
-                          child: Text(s.label),
-                        ),
+                        (s) => DropdownMenuItem(value: s, child: Text(s.label)),
                       )
                       .toList(),
                   onChanged: (v) => setDialogState(() => selectedSeat = v),
@@ -100,9 +97,7 @@ Future<RangeBookingResponse?> showRangeBookDialog(
                 // Member selector
                 DropdownButtonFormField<ReporteeResponse>(
                   initialValue: selectedReportee,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Person',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Select Person'),
                   items: availableReportees
                       .map(
                         (r) => DropdownMenuItem(
@@ -111,8 +106,7 @@ Future<RangeBookingResponse?> showRangeBookDialog(
                         ),
                       )
                       .toList(),
-                  onChanged: (v) =>
-                      setDialogState(() => selectedReportee = v),
+                  onChanged: (v) => setDialogState(() => selectedReportee = v),
                 ),
                 const SizedBox(height: 16),
                 // Date range display and picker
@@ -131,9 +125,7 @@ Future<RangeBookingResponse?> showRangeBookDialog(
                       firstDate: DateTime.now().subtract(
                         const Duration(days: 365),
                       ),
-                      lastDate: DateTime.now().add(
-                        const Duration(days: 365),
-                      ),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
                       initialDateRange: DateTimeRange(
                         start: fromDate,
                         end: toDate,
@@ -148,10 +140,7 @@ Future<RangeBookingResponse?> showRangeBookDialog(
                   },
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      suffixIcon: const Icon(
-                        Icons.calendar_today,
-                        size: 20,
-                      ),
+                      suffixIcon: const Icon(Icons.calendar_today, size: 20),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -188,9 +177,7 @@ Future<RangeBookingResponse?> showRangeBookDialog(
                 Text.rich(
                   TextSpan(
                     children: [
-                      const TextSpan(
-                        text: 'Enter the 6-digit TOTP code for ',
-                      ),
+                      const TextSpan(text: 'Enter the 6-digit TOTP code for '),
                       TextSpan(
                         text: selectedReportee?.friendlyName ?? '',
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -244,39 +231,42 @@ Future<RangeBookingResponse?> showRangeBookDialog(
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: isValid && codeCtrl.text.isNotEmpty
-                  ? () async {
-                      final fromStr = DateFormat(
-                        'yyyy-MM-dd',
-                      ).format(fromDate);
-                      final toStr = DateFormat('yyyy-MM-dd').format(toDate);
-                      try {
-                        final res = await api.bookSeatRange(
-                          selectedReportee!.id,
-                          selectedSeat!.id,
-                          fromStr,
-                          toStr,
-                          codeCtrl.text,
-                        );
-                        rangeResult = res;
-                        if (ctx.mounted) {
-                          Navigator.pop(ctx);
-                          final msg =
-                              'Booked ${res.seatLabel}: ${res.confirmedCount} confirmed, '
-                              '${res.waitlistedCount} waitlisted, ${res.failedCount} skipped';
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text(msg)),
-                          );
-                        }
-                      } catch (e) {
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text(e.toString())),
-                          );
-                        }
-                      }
-                    }
-                  : null,
+              onPressed: () async {
+                if (!isValid) return;
+                if (codeCtrl.text.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Please enter a TOTP code')),
+                  );
+                  return;
+                }
+                final fromStr = DateFormat('yyyy-MM-dd').format(fromDate);
+                final toStr = DateFormat('yyyy-MM-dd').format(toDate);
+                try {
+                  final res = await api.bookSeatRange(
+                    selectedReportee!.id,
+                    selectedSeat!.id,
+                    fromStr,
+                    toStr,
+                    codeCtrl.text,
+                  );
+                  rangeResult = res;
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    final msg =
+                        'Booked ${res.seatLabel}: ${res.confirmedCount} confirmed, '
+                        '${res.waitlistedCount} waitlisted, ${res.failedCount} skipped';
+                    ScaffoldMessenger.of(
+                      ctx,
+                    ).showSnackBar(SnackBar(content: Text(msg)));
+                  }
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(
+                      ctx,
+                    ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
+                }
+              },
               child: const Text('Book Range'),
             ),
           ],
