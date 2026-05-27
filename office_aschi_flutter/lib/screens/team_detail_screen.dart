@@ -615,7 +615,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
   void _jumpToDate(String dateStr) {
     setState(() {
       _selectedDate = DateTime.parse(dateStr);
-      _showRangeView = false;
     });
     _loadAvailability();
   }
