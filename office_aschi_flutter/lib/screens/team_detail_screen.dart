@@ -644,28 +644,30 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(_team?.name ?? 'Loading...'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: _copyTeamUrl,
-            tooltip: 'Copy team link',
-            style: IconButton.styleFrom(
-              backgroundColor: cs.primaryContainer,
-              foregroundColor: cs.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 6),
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            onPressed: _openJoinDialog,
-            tooltip: 'Join team',
-            style: IconButton.styleFrom(
-              backgroundColor: cs.primaryContainer,
-              foregroundColor: cs.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
+        actions: _team == null
+            ? null
+            : [
+                IconButton(
+                  icon: const Icon(Icons.share),
+                  onPressed: _copyTeamUrl,
+                  tooltip: 'Copy team link',
+                  style: IconButton.styleFrom(
+                    backgroundColor: cs.primaryContainer,
+                    foregroundColor: cs.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  icon: const Icon(Icons.person_add),
+                  onPressed: _openJoinDialog,
+                  tooltip: 'Join team',
+                  style: IconButton.styleFrom(
+                    backgroundColor: cs.primaryContainer,
+                    foregroundColor: cs.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
         bottom: TabBar(
           controller: _tabController,
           tabs: [
