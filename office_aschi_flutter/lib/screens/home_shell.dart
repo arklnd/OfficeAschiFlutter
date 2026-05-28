@@ -12,8 +12,17 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
+  int _previousIndex = 0;
 
   static const List<Widget> _screens = [TeamSearchScreen(), SeatSearchScreen()];
+
+  void _switchTab(int index) {
+    if (index == _selectedIndex) return;
+    setState(() {
+      _previousIndex = _selectedIndex;
+      _selectedIndex = index;
+    });
+  }
 
   void _openSettings(BuildContext context) {
     Navigator.push(
@@ -88,18 +97,41 @@ class _HomeShellState extends State<HomeShell> {
           if (details.primaryVelocity == null) return;
           if (details.primaryVelocity! < -300 &&
               _selectedIndex < _screens.length - 1) {
-            setState(() => _selectedIndex++);
+            _switchTab(_selectedIndex + 1);
           } else if (details.primaryVelocity! > 300 && _selectedIndex > 0) {
-            setState(() => _selectedIndex--);
+            _switchTab(_selectedIndex - 1);
           }
         },
-        child: IndexedStack(index: _selectedIndex, children: _screens),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          switchInCurve: Curves.easeInOut,
+          switchOutCurve: Curves.easeInOut,
+          transitionBuilder: (child, animation) {
+            final isForward = _selectedIndex > _previousIndex;
+            final inOffset = isForward
+                ? const Offset(1, 0)
+                : const Offset(-1, 0);
+            final outOffset = isForward
+                ? const Offset(-1, 0)
+                : const Offset(1, 0);
+            final isIncoming = child.key == ValueKey(_selectedIndex);
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: isIncoming ? inOffset : outOffset,
+                end: Offset.zero,
+              ).animate(animation),
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          child: KeyedSubtree(
+            key: ValueKey(_selectedIndex),
+            child: _screens[_selectedIndex],
+          ),
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
-        },
+        onDestinationSelected: _switchTab,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.group_outlined),
