@@ -27,71 +27,81 @@ class DateNavigator extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Column(
-      children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: onPreviousDay,
-              icon: Icon(Icons.chevron_left, size: 32, color: cs.onSurface),
-            ),
-            Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime(2024),
-                    lastDate: DateTime(2030),
-                  );
-                  if (picked != null) {
-                    onDatePicked(picked);
-                  }
-                },
-                child: Column(
-                  children: [
-                    Text(
-                      '${selectedDate.day}',
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity == null) return;
+        if (details.primaryVelocity! < -300) {
+          onNextDay();
+        } else if (details.primaryVelocity! > 300) {
+          onPreviousDay();
+        }
+      },
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: onPreviousDay,
+                icon: Icon(Icons.chevron_left, size: 32, color: cs.onSurface),
+              ),
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2024),
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      onDatePicked(picked);
+                    }
+                  },
+                  child: Column(
+                    children: [
+                      Text(
+                        '${selectedDate.day}',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${DateFormat('MMMM').format(selectedDate)} ${selectedDate.year}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: cs.onSurfaceVariant,
+                      Text(
+                        '${DateFormat('MMMM').format(selectedDate)} ${selectedDate.year}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    Text(
-                      DateFormat('EEEE').format(selectedDate),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: cs.onSurfaceVariant,
+                      Text(
+                        DateFormat('EEEE').format(selectedDate),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            IconButton(
-              onPressed: onNextDay,
-              icon: Icon(Icons.chevron_right, size: 32, color: cs.onSurface),
-            ),
-          ],
-        ),
-        if (!_isToday && onToday != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: TextButton.icon(
-              onPressed: onToday,
-              icon: const Icon(Icons.today, size: 18),
-              label: const Text('Today'),
-            ),
+              IconButton(
+                onPressed: onNextDay,
+                icon: Icon(Icons.chevron_right, size: 32, color: cs.onSurface),
+              ),
+            ],
           ),
-      ],
+          if (!_isToday && onToday != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: TextButton.icon(
+                onPressed: onToday,
+                icon: const Icon(Icons.today, size: 18),
+                label: const Text('Today'),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -141,10 +151,7 @@ class DateSelectorRow extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: onNextDay,
-        ),
+        IconButton(icon: const Icon(Icons.chevron_right), onPressed: onNextDay),
       ],
     );
   }
