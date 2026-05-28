@@ -38,49 +38,41 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
+          cache-dependency-path: office_aschi_flutter/android/*.gradle*
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: beta
+          cache: true
 
       - name: Install dependencies
         working-directory: office_aschi_flutter
         run: flutter pub get
 
-      - name: Stamp app version
+      - name: Prepare build
+        id: changelog
         working-directory: office_aschi_flutter
         run: |
+          # Stamp app version
           VERSION="${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}"
           sed -i "s|APP_VERSION_PLACEHOLDER|${VERSION}|g" lib/version.dart
 
-    #   - name: Set API base URL
-    #     working-directory: office_aschi_flutter
-    #     run: |
-    #       if [ -n "${{ vars.API_BASEURL }}" ]; then
-    #         sed -i "s|https://officeaschi.azurewebsites.net/api|${{ vars.API_BASEURL }}|g" lib/api_service.dart
-    #       fi
-
-      - name: Decode keystore & create key.properties
-        working-directory: office_aschi_flutter/android
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release-keystore.jks
-          cat > key.properties <<EOF
+          # Decode keystore & create key.properties
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release-keystore.jks
+          cat > android/key.properties <<EOF
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
           storeFile=release-keystore.jks
           EOF
-          # trim leading whitespace added by heredoc indentation
-          sed -i 's/^[[:space:]]*//' key.properties
+          sed -i 's/^[[:space:]]*//' android/key.properties
 
-      - name: Generate changelog
-        id: changelog
-        run: |
+          # Generate changelog
           CH="${{ env.BUILD_TYPE }}"
-          # Find the most recent release tag for this channel
           PREV_TAG=$(git tag --list "v*-${CH}-*" --sort=-version:refname | head -n1)
           if [ -n "$PREV_TAG" ]; then
             echo "Previous ${CH} tag: $PREV_TAG"
@@ -89,7 +81,6 @@ jobs:
             echo "No previous ${CH} tag found – using last 20 commits"
             LOG=$(git log --pretty=format:"• %s (%h)" -20 -- . ':!build')
           fi
-          # Write multi-line output
           {
             echo "log<<CHANGELOG_EOF"
             echo "$LOG"
@@ -104,7 +95,7 @@ jobs:
           if [ "${{ env.BUILD_TYPE }}" = "release" ]; then
             flutter build apk --release --build-name="$VERSION" --build-number="$BUILD_NUM"
           else
-            flutter build apk --debug --build-name="$VERSION" --build-number="$BUILD_NUM"
+            flutter build apk --debug --build-name="$VERSION" --build-number="$BUILD_NUM" --no-tree-shake-icons
           fi
 
       - name: Rename APK
