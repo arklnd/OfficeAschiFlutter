@@ -8,9 +8,9 @@ import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
 import 'utils/snackbar_service.dart';
 import 'widgets/health_banner.dart';
-import 'screens/team_search_screen.dart';
 import 'screens/team_detail_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/home_shell.dart';
 
 /// Global navigator key -- used to show dialogs from notification taps.
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -83,7 +83,7 @@ class MyApp extends StatelessWidget {
                       child: Scaffold(body: content),
                     );
                   },
-                  home: const TeamSearchScreen(),
+                  home: const HomeShell(),
                   onGenerateRoute: (settings) {
                     if (settings.name == '/settings') {
                       return PageRouteBuilder(
@@ -116,7 +116,7 @@ class MyApp extends StatelessWidget {
                       }
                     }
                     return MaterialPageRoute(
-                      builder: (_) => const TeamSearchScreen(),
+                      builder: (_) => const HomeShell(),
                     );
                   },
                 );

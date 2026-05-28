@@ -10,8 +10,6 @@ import '../widgets/empty_state.dart';
 import '../dialogs/create_team_dialog.dart';
 import '../version.dart';
 import 'team_detail_screen.dart';
-import 'settings_screen.dart';
-import 'seat_search_screen.dart';
 
 class TeamSearchScreen extends StatefulWidget {
   const TeamSearchScreen({super.key});
@@ -106,75 +104,6 @@ class _TeamSearchScreenState extends State<TeamSearchScreen>
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Office Aschi'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            style: IconButton.styleFrom(
-              backgroundColor: cs.primaryContainer,
-              foregroundColor: cs.onPrimaryContainer,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder: (_, __, ___) => const SettingsScreen(),
-                  transitionsBuilder: (_, animation, __, child) {
-                    return SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(1, 0),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeInOut,
-                      )),
-                      child: child,
-                    );
-                  },
-                  transitionDuration: const Duration(milliseconds: 300),
-                  reverseTransitionDuration: const Duration(milliseconds: 300),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      drawer: NavigationDrawer(
-        selectedIndex: 0,
-        onDestinationSelected: (index) {
-          Navigator.pop(context);
-          if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SeatSearchScreen()),
-            );
-          }
-        },
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
-            child: Text(
-              'Office Aschi',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(color: cs.onSurfaceVariant),
-            ),
-          ),
-          const NavigationDrawerDestination(
-            icon: Icon(Icons.group_outlined),
-            selectedIcon: Icon(Icons.group),
-            label: Text('Teams'),
-          ),
-          const NavigationDrawerDestination(
-            icon: Icon(Icons.event_seat_outlined),
-            selectedIcon: Icon(Icons.event_seat),
-            label: Text('Seat Search'),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openCreateTeamDialog,
         tooltip: 'Create Team',

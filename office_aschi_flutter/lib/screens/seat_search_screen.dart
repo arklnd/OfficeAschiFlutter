@@ -108,7 +108,6 @@ class _SeatSearchScreenState extends State<SeatSearchScreen> {
     final filtered = _filteredSeats;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Seat Search')),
       body: Column(
         children: [
           // Search bar
