@@ -86,8 +86,22 @@ class MyApp extends StatelessWidget {
                   home: const TeamSearchScreen(),
                   onGenerateRoute: (settings) {
                     if (settings.name == '/settings') {
-                      return MaterialPageRoute(
-                        builder: (_) => const SettingsScreen(),
+                      return PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => const SettingsScreen(),
+                        transitionsBuilder: (_, animation, __, child) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(1, 0),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeInOut,
+                            )),
+                            child: child,
+                          );
+                        },
+                        transitionDuration: const Duration(milliseconds: 300),
+                        reverseTransitionDuration: const Duration(milliseconds: 300),
                       );
                     }
                     if (settings.name != null &&
