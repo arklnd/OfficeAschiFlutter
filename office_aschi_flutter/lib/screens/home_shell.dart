@@ -79,7 +79,18 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity == null) return;
+          if (details.primaryVelocity! < -300 &&
+              _selectedIndex < _screens.length - 1) {
+            setState(() => _selectedIndex++);
+          } else if (details.primaryVelocity! > 300 && _selectedIndex > 0) {
+            setState(() => _selectedIndex--);
+          }
+        },
+        child: IndexedStack(index: _selectedIndex, children: _screens),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
