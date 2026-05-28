@@ -93,9 +93,15 @@ jobs:
           VERSION="${{ steps.vars.outputs.build_number }}.0.0-${{ steps.vars.outputs.sha_short }}"
           BUILD_NUM="${{ steps.vars.outputs.build_number }}"
           if [ "${{ env.BUILD_TYPE }}" = "release" ]; then
-            flutter build apk --release --build-name="$VERSION" --build-number="$BUILD_NUM"
+            flutter build apk --release \
+              --build-name="$VERSION" --build-number="$BUILD_NUM" \
+              --no-pub \
+              --target-platform android-arm64
           else
-            flutter build apk --debug --build-name="$VERSION" --build-number="$BUILD_NUM" --no-tree-shake-icons
+            flutter build apk --debug \
+              --build-name="$VERSION" --build-number="$BUILD_NUM" \
+              --no-pub \
+              --no-tree-shake-icons
           fi
 
       - name: Rename APK
