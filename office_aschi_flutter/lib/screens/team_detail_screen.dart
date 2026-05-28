@@ -766,6 +766,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen>
                       loading: _rangeLoading,
                       rangeFrom: _rangeFrom,
                       rangeTo: _rangeTo,
+                      selectedDate: _selectedDate,
                       onRangeChanged: _onRangeChanged,
                       onJumpToDate: _jumpToDate,
                     ),

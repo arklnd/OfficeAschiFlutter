@@ -14,6 +14,7 @@ class RangeAvailabilityCard extends StatelessWidget {
   final bool loading;
   final DateTime rangeFrom;
   final DateTime rangeTo;
+  final DateTime selectedDate;
   final void Function(DateTime from, DateTime to) onRangeChanged;
   final ValueChanged<String> onJumpToDate;
 
@@ -23,6 +24,7 @@ class RangeAvailabilityCard extends StatelessWidget {
     required this.loading,
     required this.rangeFrom,
     required this.rangeTo,
+    required this.selectedDate,
     required this.onRangeChanged,
     required this.onJumpToDate,
   });
@@ -69,6 +71,7 @@ class RangeAvailabilityCard extends StatelessWidget {
             else if (rangeAvailability != null)
               _DayGrid(
                 days: rangeAvailability!.days,
+                selectedDate: selectedDate,
                 onJumpToDate: onJumpToDate,
               ),
           ],
@@ -164,9 +167,14 @@ class _DateRangeChip extends StatelessWidget {
 
 class _DayGrid extends StatelessWidget {
   final List<DateAvailabilitySummary> days;
+  final DateTime selectedDate;
   final ValueChanged<String> onJumpToDate;
 
-  const _DayGrid({required this.days, required this.onJumpToDate});
+  const _DayGrid({
+    required this.days,
+    required this.selectedDate,
+    required this.onJumpToDate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +216,7 @@ class _DayGrid extends StatelessWidget {
                 day: day,
                 isDark: isDark,
                 cs: cs,
+                isSelected: _isSameDay(DateTime.parse(day.date), selectedDate),
                 onTap: () => onJumpToDate(day.date),
               );
             }).toList(),
@@ -284,16 +293,21 @@ class _LegendDot extends StatelessWidget {
 // Individual day chip with circular occupancy indicator
 // ---------------------------------------------------------------------------
 
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 class _DayChip extends StatelessWidget {
   final DateAvailabilitySummary day;
   final bool isDark;
   final ColorScheme cs;
+  final bool isSelected;
   final VoidCallback onTap;
 
   const _DayChip({
     required this.day,
     required this.isDark,
     required this.cs,
+    required this.isSelected,
     required this.onTap,
   });
 
@@ -341,6 +355,10 @@ class _DayChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: bgColor,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? cs.primary : Colors.transparent,
+                  width: 2,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
