@@ -24,7 +24,11 @@ class _HomeShellState extends State<HomeShell> {
           return SlideTransition(
             position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
                 .animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeInOut,
+                    reverseCurve: Curves.easeInOut,
+                  ),
                 ),
             child: child,
           );
