@@ -77,6 +77,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   vertical: 24,
                 ),
                 children: [
+                  // App logo, name, and info
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            'assets/icons/icon-128x128.png',
+                            width: 80,
+                            height: 80,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'OfficeAschi',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          appVersion == 'APP_VERSION_PLACEHOLDER'
+                              ? 'dev (${UpdateService.channel})'
+                              : 'v$appVersion (${UpdateService.channel})',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
+                    ),
+                  ),
                   // Appearance section
                   const SectionHeader(title: 'Appearance'),
                   Card(
@@ -163,32 +194,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 24),
                   ],
-                  // About section
-                  const SectionHeader(title: 'About'),
-                  Card(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: IconBox(
-                            icon: Icons.info_outline,
-                            colorScheme: cs,
-                          ),
-                          title: const Text('Office Aschi'),
-                          subtitle: Text(
-                            appVersion == 'APP_VERSION_PLACEHOLDER'
-                                ? 'dev (${UpdateService.channel})'
-                                : 'v$appVersion (${UpdateService.channel})',
-                          ),
-                        ),
-                        ListTile(
-                          leading: IconBox(icon: Icons.code, colorScheme: cs),
-                          title: const Text('Built with Flutter'),
-                          subtitle: const Text('Cross-platform seat booking'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
                   // GitHub section
                   const SectionHeader(title: 'GitHub'),
                   Card(
