@@ -401,7 +401,7 @@ class DownloadManager {
     _notifPlugin = FlutterLocalNotificationsPlugin();
     await _notifPlugin!.initialize(
       const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher_foreground'),
+        android: AndroidInitializationSettings('@drawable/ic_notification'),
       ),
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
@@ -418,7 +418,7 @@ class DownloadManager {
       _notifPlugin = FlutterLocalNotificationsPlugin();
       _notifPlugin!.initialize(
         const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher_foreground'),
+          android: AndroidInitializationSettings('@drawable/ic_notification'),
         ),
         onDidReceiveNotificationResponse: _onNotificationTap,
       );
@@ -536,14 +536,15 @@ class DownloadManager {
       await initNotifications();
       final androidPlugin = _getNotifPluginSync()
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       if (androidPlugin == null) return;
 
       await androidPlugin.startForegroundService(
         _downloadNotifId,
         'Downloading update v${update.version}',
         'Starting download\u2026',
-         notificationDetails: AndroidNotificationDetails(
+        notificationDetails: AndroidNotificationDetails(
           _downloadChannelId,
           _downloadChannelName,
           channelDescription: 'Shows download progress for app updates',
@@ -555,7 +556,9 @@ class DownloadManager {
           showProgress: true,
           maxProgress: 100,
           progress: 0,
-          largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
+          largeIcon: const DrawableResourceAndroidBitmap(
+            'ic_notification_large',
+          ),
           color: const Color(0xFF673AB7), // deepPurple
           actions: [
             const AndroidNotificationAction(
@@ -566,7 +569,9 @@ class DownloadManager {
           ],
         ),
         payload: 'download_progress',
-        foregroundServiceTypes: {AndroidServiceForegroundType.foregroundServiceTypeDataSync},
+        foregroundServiceTypes: {
+          AndroidServiceForegroundType.foregroundServiceTypeDataSync,
+        },
       );
       _foregroundServiceRunning = true;
     } catch (e) {
@@ -580,7 +585,8 @@ class DownloadManager {
     try {
       final androidPlugin = _getNotifPluginSync()
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.stopForegroundService();
     } catch (e) {
       debugPrint('Failed to stop foreground service: $e');
@@ -629,7 +635,9 @@ class DownloadManager {
           showProgress: true,
           maxProgress: 100,
           progress: percent,
-          largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
+          largeIcon: const DrawableResourceAndroidBitmap(
+            'ic_notification_large',
+          ),
           color: const Color(0xFF673AB7), // deepPurple
           actions: [
             const AndroidNotificationAction(

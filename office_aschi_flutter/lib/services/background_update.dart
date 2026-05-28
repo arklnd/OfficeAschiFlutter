@@ -36,7 +36,7 @@ void callbackDispatcher() {
       final plugin = FlutterLocalNotificationsPlugin();
       await plugin.initialize(
         const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher_foreground'),
+          android: AndroidInitializationSettings('@drawable/ic_notification'),
         ),
       );
 
@@ -55,7 +55,9 @@ void callbackDispatcher() {
             channelDescription: _channelDescription,
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
-            largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
+            largeIcon: const DrawableResourceAndroidBitmap(
+              'ic_notification_large',
+            ),
             color: const Color(0xFF673AB7), // deepPurple
             styleInformation: changelogPreview.isNotEmpty
                 ? BigTextStyleInformation(
