@@ -12,16 +12,29 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
-  int _previousIndex = 0;
+  late final PageController _pageController;
 
   static const List<Widget> _screens = [TeamSearchScreen(), SeatSearchScreen()];
 
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _switchTab(int index) {
     if (index == _selectedIndex) return;
-    setState(() {
-      _previousIndex = _selectedIndex;
-      _selectedIndex = index;
-    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _openSettings(BuildContext context) {
@@ -92,42 +105,12 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity == null) return;
-          if (details.primaryVelocity! < -300 &&
-              _selectedIndex < _screens.length - 1) {
-            _switchTab(_selectedIndex + 1);
-          } else if (details.primaryVelocity! > 300 && _selectedIndex > 0) {
-            _switchTab(_selectedIndex - 1);
-          }
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() => _selectedIndex = index);
         },
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          switchInCurve: Curves.easeInOut,
-          switchOutCurve: Curves.easeInOut,
-          transitionBuilder: (child, animation) {
-            final isForward = _selectedIndex > _previousIndex;
-            final inOffset = isForward
-                ? const Offset(1, 0)
-                : const Offset(-1, 0);
-            final outOffset = isForward
-                ? const Offset(-1, 0)
-                : const Offset(1, 0);
-            final isIncoming = child.key == ValueKey(_selectedIndex);
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: isIncoming ? inOffset : outOffset,
-                end: Offset.zero,
-              ).animate(animation),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-          child: KeyedSubtree(
-            key: ValueKey(_selectedIndex),
-            child: _screens[_selectedIndex],
-          ),
-        ),
+        children: _screens,
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

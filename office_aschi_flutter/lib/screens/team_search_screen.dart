@@ -19,7 +19,12 @@ class TeamSearchScreen extends StatefulWidget {
 }
 
 class _TeamSearchScreenState extends State<TeamSearchScreen>
-    with WidgetsBindingObserver, ClipboardOtpMixin {
+    with
+        AutomaticKeepAliveClientMixin,
+        WidgetsBindingObserver,
+        ClipboardOtpMixin {
+  @override
+  bool get wantKeepAlive => true;
   final ApiService _api = ApiService();
   final TextEditingController _searchController = TextEditingController();
   List<TeamSearchResult> _teams = [];
@@ -102,6 +107,7 @@ class _TeamSearchScreenState extends State<TeamSearchScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       floatingActionButton: FloatingActionButton(

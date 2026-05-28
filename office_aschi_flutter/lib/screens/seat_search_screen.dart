@@ -16,7 +16,11 @@ class SeatSearchScreen extends StatefulWidget {
   State<SeatSearchScreen> createState() => _SeatSearchScreenState();
 }
 
-class _SeatSearchScreenState extends State<SeatSearchScreen> {
+class _SeatSearchScreenState extends State<SeatSearchScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final ApiService _api = ApiService();
   final TextEditingController _searchController = TextEditingController();
 
@@ -104,6 +108,7 @@ class _SeatSearchScreenState extends State<SeatSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final cs = Theme.of(context).colorScheme;
     final filtered = _filteredSeats;
 
